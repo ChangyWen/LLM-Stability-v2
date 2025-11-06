@@ -70,6 +70,7 @@ def main(
         temperature=temperature,
         top_p=1.0,
         max_tokens=max_completion_length,
+        logprobs=1,
     )
     tokenizer = llm.get_tokenizer()
 
@@ -95,16 +96,31 @@ def main(
 
     res = []
     for i in range(len(outputs)):
-        all_results = []
+        all_responses = []
+        all_logprobs = []
+        all_token_ids = []
+
         assert len(outputs[i].outputs) == n, f"Expected {n} outputs, but got {len(outputs[i].outputs)}"
         for j in range(n):
-            output = outputs[i].outputs[j].text.strip()
-            all_results.append(output)
+            raw_output = outputs[i].outputs[j]
+            response = raw_output.text.strip()
+            token_ids = raw_output.token_ids
+            raw_logprobs = raw_output.logprobs
+            logprobs = []
+            for token_id, logprob_obj in zip(token_ids, raw_logprobs):
+                logprobs.append(logprob_obj[token_id].logprob)
+
+            all_responses.append(response)
+            all_logprobs.append(logprobs)
+            all_token_ids.append(token_ids)
+
         res.append({
             "idx": idxs[i],
             "prompt": raw_prompts[i],
             "ground_truth": ground_truths[i],
-            "results": all_results,
+            "responses": all_responses,
+            "logprobs": all_logprobs,
+            "token_ids": all_token_ids,
             "uuid": str(uuid4())
         })
 
