@@ -84,7 +84,7 @@ def main(
         assert thinking_budget > 0, f"thinking_budget must be greater than 0, but got {thinking_budget}"
         save_file = save_file.replace(".jsonl", f"_tb{str(thinking_budget)}.jsonl")
 
-    prompts, raw_prompts, idxs = load_dataset(test_data_file, tokenizer, model_name, disable_thinking, thinking_budget, save_file)
+    prompts, raw_prompts, idxs = load_dataset(test_data_file, tokenizer, model_name, disable_thinking, thinking_budget)
 
     print(f"Processing [{model_name}] on [{test_data_file}] ({len(prompts)} prompts) ...")
     print(f"Results will be saved to [{save_file}] ...")
