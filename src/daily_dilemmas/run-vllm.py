@@ -33,7 +33,6 @@ def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_bud
 def load_dataset(dataset_path, tokenizer, model_name, disable_thinking, thinking_budget):
     prompts = []
     raw_prompts = []
-    ground_truths = []
     idxs = []
     total_count = 0
 
@@ -41,19 +40,17 @@ def load_dataset(dataset_path, tokenizer, model_name, disable_thinking, thinking
         for line in f:
             item = json.loads(line.strip())
             idx = str(item["idx"])
-            original_question = item["paraphrases"][0]
-            ground_truth = item["ground_truth"]
+            original_question = item["dilemma_situation"].strip()
             prompt = get_prompt(original_question, tokenizer, model_name, disable_thinking, thinking_budget)
             prompts.append(prompt)
             raw_prompts.append(original_question)
-            ground_truths.append(ground_truth)
             idxs.append(idx)
 
             total_count += 1
             if total_count >= 500:
                 break
 
-    return prompts, raw_prompts, ground_truths, idxs
+    return prompts, raw_prompts, idxs
 
 
 def main(
@@ -73,14 +70,14 @@ def main(
     )
     tokenizer = llm.get_tokenizer()
 
-    test_data_file = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/datasets/medmcqa/medmcqa_non_mcq.jsonl"
-    os.makedirs("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa/", exist_ok=True)
+    test_data_file = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/datasets/daily_dilemmas/daily_dilemmas_en.jsonl"
+    os.makedirs("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/daily_dilemmas/", exist_ok=True)
     _model_name = model_name.split("/")[-1]
 
     if not disable_thinking:
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa/{_model_name}_temp{str(temperature)}_n{str(n)}.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/daily_dilemmas/{_model_name}_temp{str(temperature)}_n{str(n)}.jsonl"
     else:
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa/{_model_name}_temp{str(temperature)}_n{str(n)}_dt.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/daily_dilemmas/{_model_name}_temp{str(temperature)}_n{str(n)}_dt.jsonl"
 
     if isinstance(thinking_budget, int):
         assert not disable_thinking, f"thinking_budget is only supported when disable_thinking is False"
