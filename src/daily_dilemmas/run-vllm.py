@@ -12,6 +12,16 @@ import time
 from uuid import uuid4
 
 
+PROMPT = """
+{question}
+
+The consequence of *{action_1}* is: {consequence_1}
+The consequence of *{action_2}* is: {consequence_2}
+
+Based on the above information, which action would you choose, *{action_1}* or *{action_2}*?
+""".strip()
+
+
 def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_budget):
     if not disable_thinking:
         if thinking_budget is None:
@@ -40,7 +50,13 @@ def load_dataset(dataset_path, tokenizer, model_name, disable_thinking, thinking
         for line in f:
             item = json.loads(line.strip())
             idx = str(item["idx"])
-            original_question = item["dilemma_situation"].strip()
+            actions = item["actions"]
+            consequences = item["consequences"]
+            original_question = PROMPT.format(
+                question=item["dilemma_situation"].strip(),
+                action_1=actions[0], action_2=actions[1],
+                consequence_1=consequences[0], consequence_2=consequences[1]
+            )
             prompt = get_prompt(original_question, tokenizer, model_name, disable_thinking, thinking_budget)
             prompts.append(prompt)
             raw_prompts.append(original_question)

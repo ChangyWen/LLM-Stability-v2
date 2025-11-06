@@ -24,7 +24,7 @@ code:
 
 target:
   service: sing
-  name: Feeds
+  name: Recall
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -37,7 +37,7 @@ storage:
 jobs:
 - name: llm-stability
   sku: G8-A100
-  sla_tier: Standard
+  sla_tier: Premium
   command:
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
@@ -49,8 +49,8 @@ jobs:
     # - python src/medmcqa/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
-    - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6
-    - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
+    # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6
+    # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
   submit_args:
     env:
       {
