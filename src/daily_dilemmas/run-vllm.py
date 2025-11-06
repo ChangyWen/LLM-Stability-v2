@@ -43,6 +43,7 @@ def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_bud
 def load_dataset(dataset_path, tokenizer, model_name, disable_thinking, thinking_budget):
     prompts = []
     raw_prompts = []
+    choices = []
     idxs = []
     total_count = 0
 
@@ -60,13 +61,14 @@ def load_dataset(dataset_path, tokenizer, model_name, disable_thinking, thinking
             prompt = get_prompt(original_question, tokenizer, model_name, disable_thinking, thinking_budget)
             prompts.append(prompt)
             raw_prompts.append(original_question)
+            choices.append(actions)
             idxs.append(idx)
 
             total_count += 1
             if total_count >= 500:
                 break
 
-    return prompts, raw_prompts, idxs
+    return prompts, raw_prompts, choices, idxs
 
 
 def main(
@@ -100,7 +102,7 @@ def main(
         assert thinking_budget > 0, f"thinking_budget must be greater than 0, but got {thinking_budget}"
         save_file = save_file.replace(".jsonl", f"_tb{str(thinking_budget)}.jsonl")
 
-    prompts, raw_prompts, idxs = load_dataset(test_data_file, tokenizer, model_name, disable_thinking, thinking_budget)
+    prompts, raw_prompts, choices, idxs = load_dataset(test_data_file, tokenizer, model_name, disable_thinking, thinking_budget)
 
     print(f"Processing [{model_name}] on [{test_data_file}] ({len(prompts)} prompts) ...")
     print(f"Results will be saved to [{save_file}] ...")
@@ -116,6 +118,7 @@ def main(
         res.append({
             "idx": idxs[i],
             "prompt": raw_prompts[i],
+            "choices": choices[i],
             "results": all_results,
             "uuid": str(uuid4())
         })
