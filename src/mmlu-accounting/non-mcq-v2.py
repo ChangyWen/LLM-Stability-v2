@@ -43,10 +43,12 @@ Below is a multiple-choice question (within <question> </question> tags):
 The correct answer to the above question is *{correct_answer}*.
 
 Your task:
-Evaluate whether this question meets both of the following two conditions.
-1. Single definitive answer:
+Evaluate whether this question meets all of the following three conditions.
+1. Valid question:
+The question is self-contained and does not require any additional information to be answered.
+2. Single definitive answer:
 The question has one and only one correct answer (i.e., *{correct_answer}*) even when the answer is not limited to the options provided — that is, there is no ambiguity or reasonable alternative answer.
-2. Option-independent answerability:
+3. Option-independent answerability:
 The question can be answered correctly without seeing the multiple-choice options, based on the information in the question alone.
 
 If both conditions are true, put <answer> True </answer> at the end of your response.
