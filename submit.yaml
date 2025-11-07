@@ -39,6 +39,7 @@ jobs:
   sku: G8-A100
   sla_tier: Premium
   command:
+    ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.6
@@ -47,6 +48,7 @@ jobs:
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
     # - python src/medmcqa/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1
     # - python src/medmcqa/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1 --disable_thinking
+    ########### daily_dilemmas ###########
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6
@@ -55,6 +57,15 @@ jobs:
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.6 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1
     # - python src/daily_dilemmas/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1 --disable_thinking
+    ########### mmlu-law ###########
+    # - python src/mmlu-law/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
+    # - python src/mmlu-law/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
+    # - python src/mmlu-law/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.6
+    # - python src/mmlu-law/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.6 --disable_thinking
+    # - python src/mmlu-law/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6
+    # - python src/mmlu-law/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
+    # - python src/mmlu-law/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1
+    # - python src/mmlu-law/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1 --disable_thinking
   submit_args:
     env:
       {
