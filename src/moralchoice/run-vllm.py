@@ -42,7 +42,7 @@ def load_dataset(dataset_path, tokenizer, model_name, disable_thinking, thinking
             item = json.loads(line.strip())
             idx = str(item["idx"])
             actions = item["actions"]
-            original_question = f"{item['context']}\n\n Which action would you choose, *{actions[0]}* or *{actions[1]}*?"
+            original_question = f"{item['context'].strip()}\n\nWhich action would you choose, *{actions[0]}* or *{actions[1]}*?"
             prompt = get_prompt(original_question, tokenizer, model_name, disable_thinking, thinking_budget)
             prompts.append(prompt)
             raw_prompts.append(original_question)
