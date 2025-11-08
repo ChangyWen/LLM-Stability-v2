@@ -65,6 +65,7 @@ def load_dataset(file, tokenizer):
 
     prompts = []
     raw_prompts = []
+    questions = []
     ground_truths = []
     inner_idxs = []
     uuids = []
@@ -87,13 +88,14 @@ def load_dataset(file, tokenizer):
                         continue
                     prompts.append(prompt)
                     raw_prompts.append(raw_prompt)
+                    questions.append(question)
                     ground_truths.append(ground_truth)
                     inner_idxs.append(i)
                     uuids.append(uuid)
                     idxs.append(idx)
                 except Exception as e:
                     continue
-    return prompts, raw_prompts, ground_truths, inner_idxs, uuids, idxs
+    return prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs
 
 
 if __name__ == "__main__":
@@ -130,7 +132,7 @@ if __name__ == "__main__":
         trust_remote_code=True,
     )
 
-    prompts, raw_prompts, ground_truths, inner_idxs, uuids, idxs = load_dataset(file_name, llm.get_tokenizer())
+    prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs = load_dataset(file_name, llm.get_tokenizer())
 
     print(f"Processing [{args.model_name}] on [{file_name}] ({len(prompts)} prompts) ...")
     print(f"Results will be saved to [{save_file}] ...")
@@ -152,6 +154,7 @@ if __name__ == "__main__":
             "uuid": uuids[i],
             "inner_idx": inner_idxs[i],
             "final_answer": final_answer,
+            "question": questions[i],
             "ground_truth": ground_truths[i],
         })
 
