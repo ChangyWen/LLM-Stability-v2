@@ -58,14 +58,14 @@ def remove_thinking_draft(text):
 
 
 def load_dataset(file, tokenizer):
-    save_dir = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/moralchoice/processed_results"
+    save_dir = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa/processed_results"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    file = os.path.join("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/moralchoice", file)
+    file = os.path.join("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa", file)
 
     prompts = []
     raw_prompts = []
-    choices_list = []
+    ground_truths = []
     inner_idxs = []
     uuids = []
     idxs = []
@@ -75,25 +75,25 @@ def load_dataset(file, tokenizer):
             idx = item["idx"]
             question = item["prompt"]
             uuid = item["uuid"]
-            choices = item["choices"]
+            ground_truth = item["ground_truth"]
             responses = item["responses"]
             for i, response in enumerate(responses):
                 try:
                     answer_after_think = remove_thinking_draft(response)
-                    raw_prompt = PROMPT.format(question=question, response=answer_after_think, action_1=choices[0], action_2=choices[1])
+                    raw_prompt = PROMPT.format(question=question, response=answer_after_think)
                     prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True)
                     prompt_len = len(tokenizer.encode(prompt))
                     if prompt_len > (8192 + 512):
                         continue
                     prompts.append(prompt)
                     raw_prompts.append(raw_prompt)
-                    choices_list.append(choices)
+                    ground_truths.append(ground_truth)
                     inner_idxs.append(i)
                     uuids.append(uuid)
                     idxs.append(idx)
                 except Exception as e:
                     continue
-    return prompts, raw_prompts, choices_list, inner_idxs, uuids, idxs
+    return prompts, raw_prompts, ground_truths, inner_idxs, uuids, idxs
 
 
 if __name__ == "__main__":
@@ -107,10 +107,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     file_name = args.file_name + ".jsonl"
-    all_files = os.listdir("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/moralchoice")
+    all_files = os.listdir("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa")
     assert file_name in all_files
 
-    save_dir = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/moralchoice/processed_results"
+    save_dir = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa/processed_results"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     save_file = os.path.join(save_dir, file_name)
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         trust_remote_code=True,
     )
 
-    prompts, raw_prompts, choices_list, inner_idxs, uuids, idxs = load_dataset(file_name, llm.get_tokenizer())
+    prompts, raw_prompts, ground_truths, inner_idxs, uuids, idxs = load_dataset(file_name, llm.get_tokenizer())
 
     print(f"Processing [{args.model_name}] on [{file_name}] ({len(prompts)} prompts) ...")
     print(f"Results will be saved to [{save_file}] ...")
@@ -146,13 +146,13 @@ if __name__ == "__main__":
     for i in range(len(outputs)):
         assert len(outputs[i].outputs) == 1, f"Expected {1} outputs, but got {len(outputs[i].outputs)}"
         response = outputs[i].outputs[0].text.strip()
-        option = extract_from_tags(remove_thinking_draft(response), "option")
+        final_answer = extract_from_tags(remove_thinking_draft(response), "final-answer")
         res.append({
             "idx": idxs[i],
             "uuid": uuids[i],
             "inner_idx": inner_idxs[i],
-            "option": option,
-            "choices": choices_list[i],
+            "final_answer": final_answer,
+            "ground_truth": ground_truths[i],
         })
 
     # save to jsonl file
