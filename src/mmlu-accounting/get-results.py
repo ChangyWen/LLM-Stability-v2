@@ -83,7 +83,7 @@ def load_dataset(file, tokenizer):
                     raw_prompt = PROMPT.format(question=question, response=answer_after_think)
                     prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True)
                     prompt_len = len(tokenizer.encode(prompt))
-                    if prompt_len > (8192 + 512):
+                    if prompt_len > 10240:
                         continue
                     prompts.append(prompt)
                     raw_prompts.append(raw_prompt)
@@ -100,8 +100,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", type=str, required=False, default="Qwen/Qwen3-30B-A3B-Thinking-2507")
     parser.add_argument("--tensor_parallel_size", type=int, required=False, default=8)
-    parser.add_argument("--max_prompt_length", type=int, required=False, default=(8192 + 512))
-    parser.add_argument("--max_completion_length", type=int, required=False, default=4096)
+    parser.add_argument("--max_prompt_length", type=int, required=False, default=10240)
+    parser.add_argument("--max_completion_length", type=int, required=False, default=5120)
     parser.add_argument("--temperature", type=float, required=False, default=0.6)
     parser.add_argument("--file_name", type=str, required=True)
     args = parser.parse_args()
