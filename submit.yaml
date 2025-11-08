@@ -24,7 +24,7 @@ code:
 
 target:
   service: sing
-  name: Feeds
+  name: Recall
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -37,7 +37,7 @@ storage:
 jobs:
 - name: llm-stability
   sku: G8-A100
-  sla_tier: Standard
+  sla_tier: Premium
   command:
     ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
@@ -99,14 +99,14 @@ jobs:
     # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
     # - python src/mmlu-accounting/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1
     # - python src/mmlu-accounting/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1 --disable_thinking
-    - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.6_n50
-    - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt
-    - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50
-    - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
-    - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.6_n50
-    - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt
-    - python src/mmlu-accounting/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
-    - python src/mmlu-accounting/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.6_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.6_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
     ########### moralchoice ###########
     # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
