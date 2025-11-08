@@ -124,8 +124,6 @@ jobs:
     # - python src/moralchoice/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt
     # - python src/moralchoice/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
     # - python src/moralchoice/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
-    ########### debug ###########
-    # - python src/inspect-data.py
   submit_args:
     env:
       {
