@@ -156,6 +156,7 @@ if __name__ == "__main__":
             "final_answer": final_answer,
             "question": questions[i],
             "ground_truth": ground_truths[i],
+            "response": response,
         })
 
     # save to jsonl file

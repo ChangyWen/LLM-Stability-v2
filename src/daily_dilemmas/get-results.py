@@ -155,6 +155,7 @@ if __name__ == "__main__":
             "option": option,
             "question": questions[i],
             "choices": choices_list[i],
+            "response": response,
         })
 
     # save to jsonl file
