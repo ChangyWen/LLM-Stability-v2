@@ -1,7 +1,8 @@
 set -x
 
-total_count=$1
-file_name=$2
+dataset=$1
+total_count=$2
+file_name=$3
 
 
 for ((i=0; i<total_count; i++)); do
