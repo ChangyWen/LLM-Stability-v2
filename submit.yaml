@@ -147,36 +147,48 @@ jobs:
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3 --disable_thinking
+    # - python src/daily_dilemmas/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.3
+    # - python src/daily_dilemmas/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.3 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.9
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.9 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9 --disable_thinking
+    # - python src/daily_dilemmas/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.9
+    # - python src/daily_dilemmas/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.9 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 1.2
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 1.2 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2 --disable_thinking
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2 --disable_thinking
+    # - python src/daily_dilemmas/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 1.2
+    # - python src/daily_dilemmas/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 1.2 --disable_thinking
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp0.3_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp0.3_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-32B_temp0.3_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-32B_temp0.3_n50_dt
+    # - python src/daily_dilemmas/get-results.py --file_name EXAONE-4.0.1-32B_temp0.3_n50
+    # - python src/daily_dilemmas/get-results.py --file_name EXAONE-4.0.1-32B_temp0.3_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp0.9_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp0.9_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-32B_temp0.9_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-32B_temp0.9_n50_dt
+    # - python src/daily_dilemmas/get-results.py --file_name EXAONE-4.0.1-32B_temp0.9_n50
+    # - python src/daily_dilemmas/get-results.py --file_name EXAONE-4.0.1-32B_temp0.9_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp1.2_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp1.2_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-32B_temp1.2_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-32B_temp1.2_n50_dt
+    # - python src/daily_dilemmas/get-results.py --file_name EXAONE-4.0.1-32B_temp1.2_n50
+    # - python src/daily_dilemmas/get-results.py --file_name EXAONE-4.0.1-32B_temp1.2_n50_dt
   submit_args:
     env:
       {
