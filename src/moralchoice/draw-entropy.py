@@ -86,7 +86,7 @@ def plot_statistics(file_to_metrics):
         ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray")
 
     # Simplified xtick labels for subconditions
-    sublabels = ["Non-Rea.", "Rea."] * (len(keys) // 2)
+    sublabels = ["Non-R.", "R."] * (len(keys) // 2)
     ax.set_xticks(x)
     ax.set_xticklabels(sublabels, rotation=0, ha="center")
 
@@ -191,6 +191,11 @@ if __name__ == "__main__":
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
+    retained_ids = get_retained_keys([
+        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50.jsonl",
+    ])
+    retained_ids_list += [retained_ids] * 2
 
     get_statistics([
         "outputs/moralchoice/processed_results/Qwen3-4B_temp0.6_n50_dt.jsonl",
@@ -204,4 +209,7 @@ if __name__ == "__main__":
 
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
+
+        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50.jsonl",
     ], retained_ids_list)

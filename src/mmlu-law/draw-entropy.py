@@ -84,7 +84,7 @@ def plot_statistics(file_to_metrics):
         ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray")
 
     # Simplified xtick labels for subconditions
-    sublabels = ["Non-Rea.", "Rea."] * (len(keys) // 2)
+    sublabels = ["Non-R.", "R."] * (len(keys) // 2)
     ax.set_xticks(x)
     ax.set_xticklabels(sublabels, rotation=0, ha="center")
 

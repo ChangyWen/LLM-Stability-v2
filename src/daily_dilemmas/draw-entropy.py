@@ -200,11 +200,6 @@ if __name__ == "__main__":
         "outputs/daily_dilemmas/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
-    # retained_ids = get_retained_keys([
-    #     "outputs/daily_dilemmas/processed_results/EXAONE-4.0-1.2B_temp0.6_n50_dt.jsonl",
-    #     "outputs/daily_dilemmas/processed_results/EXAONE-4.0-1.2B_temp0.6_n50.jsonl",
-    # ])
-    # retained_ids_list += [retained_ids] * 2
     retained_ids = get_retained_keys([
         "outputs/daily_dilemmas/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt.jsonl",
         "outputs/daily_dilemmas/processed_results/EXAONE-4.0.1-32B_temp0.6_n50.jsonl",
@@ -223,9 +218,6 @@ if __name__ == "__main__":
 
         "outputs/daily_dilemmas/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
         "outputs/daily_dilemmas/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
-
-        # "outputs/daily_dilemmas/processed_results/EXAONE-4.0-1.2B_temp0.6_n50_dt.jsonl",
-        # "outputs/daily_dilemmas/processed_results/EXAONE-4.0-1.2B_temp0.6_n50.jsonl",
 
         "outputs/daily_dilemmas/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt.jsonl",
         "outputs/daily_dilemmas/processed_results/EXAONE-4.0.1-32B_temp0.6_n50.jsonl",
