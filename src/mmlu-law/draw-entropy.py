@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import fisher_exact, MonteCarloMethod
 from scipy.stats import entropy
 from scipy import stats
+import seaborn as sns
 
 
 def get_retained_keys(result_files):
@@ -28,7 +29,16 @@ def get_retained_keys(result_files):
 
 
 def plot_statistics(file_to_metrics):
-    plt.rc('font', weight='normal', size=10)
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
+
     keys = [
         "Qwen3-4B-Disable", "Qwen3-4B",
         "Qwen3-32B-Disable", "Qwen3-32B",
@@ -42,21 +52,49 @@ def plot_statistics(file_to_metrics):
     x = np.arange(len(keys))
     bar_width = 0.8
 
-    colors = ["red"] * 2 + ["blue"] * 2 + ["brown"] * 2 + ["green"] * 2
+    # Modern color palette
+    palette = sns.color_palette("Set2", 4)
+    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2
 
     fig, ax = plt.subplots(dpi=1024)
-    bars = ax.bar(
-        x, avg, bar_width,
-        yerr=yerr, capsize=5,
-        color=colors, edgecolor="black"
-    )
+
+    # Draw bars one by one so we can customize alpha
+    bars = []
+    for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
+        alpha_val = 0.75 if "Disable" in key else 1.0
+        bar = ax.bar(
+            x[i], mean, bar_width,
+            yerr=err, capsize=5,
+            color=color, edgecolor="black",
+            linewidth=0.6, alpha=alpha_val
+        )
+        bars.append(bar[0])
+
+    # Add mean and CI labels
+    for i, bar in enumerate(bars):
+        mean = avg[i]
+        lower, upper = ci[i]
+        center = bar.get_x() + bar.get_width() / 2
+
+        # CI upper label
+        ax.text(center, upper + 0.015, f"{upper:.2f}",
+                ha="center", va="bottom", fontsize=8, color="dimgray")
+
+        # CI lower label
+        ax.text(center, lower - 0.025, f"{lower:.2f}",
+                ha="center", va="top", fontsize=8, color="dimgray")
 
     ax.set_xticks(x)
-    ax.set_xticklabels(keys, rotation=80, ha="center")  # center alignment
+    ax.set_xticklabels(keys, rotation=60, ha="center")  # center alignment
     ax.set_ylabel("Entropy")
-    ax.set_title("MMLU Law - Entropy (Mean with 95% CI)")
-    plt.grid(True)  # Add grid lines
-    save_file = "outputs/mmlu-law/figures/mmlu-law_entropy.png"
+    ax.set_title("MMLU Law – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
+
+    ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+
+    save_file = "outputs/mmlu-law/figures/entropy.png"
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
