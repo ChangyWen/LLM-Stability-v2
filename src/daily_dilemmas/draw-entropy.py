@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import fisher_exact, MonteCarloMethod
 from scipy.stats import entropy
 from scipy import stats
+import seaborn as sns
 
 
 def get_retained_keys(result_files):
@@ -30,13 +31,23 @@ def get_retained_keys(result_files):
 
 
 def plot_statistics(file_to_metrics):
-    plt.rc('font', weight='normal', size=10)
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
+
     keys = [
         "Qwen3-4B-Disable", "Qwen3-4B",
         "Qwen3-32B-Disable", "Qwen3-32B",
         "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
         "Seed-36B-Disable", "Seed-36B",
     ]
+    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
@@ -44,21 +55,56 @@ def plot_statistics(file_to_metrics):
     x = np.arange(len(keys))
     bar_width = 0.8
 
-    colors = ["red"] * 2 + ["blue"] * 2 + ["brown"] * 2 + ["green"] * 2
+    # Modern color palette
+    palette = sns.color_palette("Set2", 4)
+    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2
 
     fig, ax = plt.subplots(dpi=1024)
-    bars = ax.bar(
-        x, avg, bar_width,
-        yerr=yerr, capsize=5,
-        color=colors, edgecolor="black"
-    )
 
+    # Draw bars one by one so we can customize alpha
+    bars = []
+    for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
+        alpha_val = 0.75 if "Disable" in key else 1.0
+        bar = ax.bar(
+            x[i], mean, bar_width,
+            yerr=err, capsize=5,
+            color=color, edgecolor="black",
+            linewidth=0.6, alpha=alpha_val
+        )
+        bars.append(bar[0])
+
+    # Add mean and CI labels
+    for i, bar in enumerate(bars):
+        mean = avg[i]
+        lower, upper = ci[i]
+        center = bar.get_x() + bar.get_width() / 2
+
+        # CI upper label
+        ax.text(center, upper + 0.015, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray")
+
+        # CI lower label
+        ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray")
+
+    # Simplified xtick labels for subconditions
+    sublabels = ["Non-Rea.", "Rea."] * (len(keys) // 2)
     ax.set_xticks(x)
-    ax.set_xticklabels(keys, rotation=80, ha="center")  # center alignment
+    ax.set_xticklabels(sublabels, rotation=0, ha="center")
+
+    # Add group labels (centered under every two bars)
+    group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
+    group_colors = [palette[0], palette[1], palette[2], palette[3]]
+    for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
+        ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i])
+
     ax.set_ylabel("Entropy")
-    ax.set_title("DailyDilemmas - Entropy (Mean with 95% CI)")
-    plt.grid(True)  # Add grid lines
-    save_file = "outputs/daily_dilemmas/figures/daily_dilemmas_entropy.png"
+    ax.set_title("DailyDilemmas – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
+
+    ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+
+    save_file = "outputs/daily_dilemmas/figures/entropy.png"
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
