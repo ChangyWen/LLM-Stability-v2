@@ -15,7 +15,7 @@ from uuid import uuid4
 def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_budget):
     if not disable_thinking:
         if thinking_budget is None:
-            prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True)
+            prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, enable_thinking=True)
         else:
             assert isinstance(thinking_budget, int), f"thinking_budget must be an integer, but got {thinking_budget}"
             assert model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct", f"thinking_budget is only supported for model: {model_name}"
@@ -25,6 +25,8 @@ def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_bud
             prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, enable_thinking=False)
         elif model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct":
             prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, thinking_budget=0)
+        elif model_name.startswith("LGAI-EXAONE/EXAONE-4.0"):
+            prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, enable_thinking=False)
         else:
             assert False, f"Disable thinking is not supported for model: {model_name}"
     return prompt
