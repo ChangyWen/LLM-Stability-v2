@@ -140,11 +140,11 @@ if __name__ == "__main__":
         "outputs/moralchoice/processed_results/Qwen3-30B-A3B_temp0.6_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
-    # retained_ids = get_retained_keys([
-    #     "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
-    #     "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
-    # ])
-    # retained_ids_list += [retained_ids] * 2
+    retained_ids = get_retained_keys([
+        "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
+    ])
+    retained_ids_list += [retained_ids] * 2
 
     get_statistics([
         "outputs/moralchoice/processed_results/Qwen3-4B_temp0.6_n50_dt.jsonl",
@@ -156,6 +156,6 @@ if __name__ == "__main__":
         "outputs/moralchoice/processed_results/Qwen3-30B-A3B_temp0.6_n50_dt.jsonl",
         "outputs/moralchoice/processed_results/Qwen3-30B-A3B_temp0.6_n50.jsonl",
 
-        # "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
-        # "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
+        "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
     ], retained_ids_list)
