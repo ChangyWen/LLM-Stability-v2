@@ -154,9 +154,9 @@ def get_statistics(result_files, retained_ids_list):
     file_to_metrics = {}
     for i, file_name in enumerate(result_files):
         if "Seed-OSS-36B-Instruct" in file_name and ("dt" not in file_name):
-            key = "Seed-36B"
+            key = "Seed-OSS-36B-Instruct"
         elif "Seed-OSS-36B-Instruct" in file_name and ("dt" in file_name):
-            key = "Seed-36B-Disable"
+            key = "Seed-OSS-36B-Instruct-Disable"
         elif "Qwen3-4B" in file_name and ("dt" not in file_name):
             key = "Qwen3-4B"
         elif "Qwen3-4B" in file_name and ("dt" in file_name):
@@ -220,7 +220,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-30B-A3B"
+    model_name = "Seed-OSS-36B-Instruct"
     save_file = f"outputs/daily_dilemmas/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
