@@ -51,6 +51,7 @@ def plot_statistics(file_to_metrics):
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
+    diffs = [avg[i*2] - avg[i*2 + 1] for i in range(len(group_labels))]  # Non-R. − R.
 
     x = np.arange(len(keys))
     bar_width = 0.8
@@ -60,6 +61,7 @@ def plot_statistics(file_to_metrics):
     colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2 + [palette[6]] * 2
 
     fig, ax = plt.subplots(dpi=1024)
+    ax2 = ax.twinx()
 
     # Draw bars one by one so we can customize alpha
     bars = []
@@ -105,9 +107,30 @@ def plot_statistics(file_to_metrics):
     ax.set_title(f"DailyDilemmas – Entropy (Mean ± 95% CI) – {model_name}", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
+
+    # Use the same group positions you computed for group labels (centers of each pair)
+    # If defined later, recompute: group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
+    ax2.plot(group_positions, diffs, marker="o", linewidth=2.0, markersize=6, zorder=5, linestyle="--", label="ΔEntropy (Non-R. − R.)", color="gray")
+
+    # Zero baseline for reference
+    ax2.axhline(0, linestyle=":", linewidth=1.0, color="gray")
+
+    # Right-side y-axis label
+    ax2.set_ylabel("ΔEntropy", fontsize=11, fontweight="bold")
+
+    # Optional: make the right spine subtle
+    ax2.spines["right"].set_color("gray")
+    ax2.spines["right"].set_linewidth(0.8)
+
+    # Optional: keep secondary grid off (primary y-grid already on)
+    ax2.grid(False)
+
     ax.set_axisbelow(True)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
+    ax2.set_axisbelow(True)
+    for spine in ["top", "left"]:
+        ax2.spines[spine].set_visible(False)
 
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
