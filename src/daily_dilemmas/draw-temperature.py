@@ -112,20 +112,21 @@ def plot_statistics(file_to_metrics):
     # If defined later, recompute: group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
     # ax2.plot(group_positions, diffs, marker="o", linewidth=2.0, markersize=6, zorder=5, linestyle="--", label="ΔEntropy (Non-R. − R.)", color="gray")
     # Plot gray dashed connecting line
-    ax2.plot(group_positions, diffs, color="gray", linestyle="--", linewidth=1.5, zorder=4, alpha=0.7)
+    ax2.plot(group_positions, diffs, color="gray", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
 
     # Plot colored markers (group-colored)
     for pos, diff, color in zip(group_positions, diffs, group_colors):
         ax2.scatter(pos, diff, color=color, s=45, edgecolor="black", linewidth=0.6, zorder=5, label="_nolegend_")
 
     # Add invisible handle for legend entry
-    ax2.plot([], [], color="gray", linestyle="--", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
+    ax2.plot([], [], color="gray", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
 
     # Show legend
     ax2.legend(loc="best", frameon=True, fancybox=True, fontsize=9)
 
     # Zero baseline for reference
-    ax2.axhline(0, linestyle=":", linewidth=1.0, color="gray")
+    # ax2.axhline(0, linestyle=":", linewidth=1.0, color="gray")
+    ax2.set_ylim(bottom=0)
 
     # Right-side y-axis label
     ax2.set_ylabel("ΔEntropy", fontsize=11, fontweight="bold")
@@ -219,7 +220,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-32B"
+    model_name = "Qwen3-30B-A3B"
     save_file = f"outputs/daily_dilemmas/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
