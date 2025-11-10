@@ -56,8 +56,8 @@ def plot_statistics(file_to_metrics):
     bar_width = 0.8
 
     # Modern color palette
-    palette = sns.color_palette("flare", 5)
-    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2
+    palette = sns.color_palette("flare", 7)
+    colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2 + [palette[6]] * 2
 
     fig, ax = plt.subplots(dpi=1024)
 
@@ -79,11 +79,11 @@ def plot_statistics(file_to_metrics):
         lower, upper = ci[i]
         center = bar.get_x() + bar.get_width() / 2
 
-        # CI upper label
-        ax.text(center, upper + 0.015, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray")
+        # CI upper label (bold)
+        ax.text(center, upper + 0.008, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
 
-        # CI lower label
-        ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray")
+        # CI lower label (bold)
+        ax.text(center, lower - 0.010, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
 
     # Simplified xtick labels for subconditions
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
@@ -92,11 +92,16 @@ def plot_statistics(file_to_metrics):
 
     # Add group labels (centered under every two bars)
     group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    group_colors = [palette[0], palette[1], palette[2], palette[3]]
+    group_colors = [palette[0], palette[2], palette[4], palette[6]]
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
         ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=0)
 
-    ax.set_ylabel("Entropy")
+    # Remove default xlabel
+    ax.set_xlabel("")
+    # Add custom xlabel lower down (in axis coords)
+    ax.text(0.5, -0.15, "Temperature", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
+
+    ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
     ax.set_title(f"DailyDilemmas – Entropy (Mean ± 95% CI) – {model_name}", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
@@ -179,7 +184,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-30B-A3B"
+    model_name = "Qwen3-32B"
     save_file = f"outputs/daily_dilemmas/figures/temperature_{model_name}.png"
 
     retained_ids_list = []

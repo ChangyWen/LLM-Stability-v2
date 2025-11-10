@@ -80,11 +80,11 @@ def plot_statistics(file_to_metrics):
         lower, upper = ci[i]
         center = bar.get_x() + bar.get_width() / 2
 
-        # CI upper label
-        ax.text(center, upper + 0.015, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray")
+        # CI upper label (bold)
+        ax.text(center, upper + 0.008, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
 
-        # CI lower label
-        ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray")
+        # CI lower label (bold)
+        ax.text(center, lower - 0.010, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
 
     # Simplified xtick labels for subconditions
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
@@ -97,7 +97,12 @@ def plot_statistics(file_to_metrics):
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
         ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=15)
 
-    ax.set_ylabel("Entropy")
+    # Remove default xlabel
+    ax.set_xlabel("")
+    # Add custom xlabel lower down (in axis coords)
+    ax.text(0.5, -0.25, "Model", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
+
+    ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
     ax.set_title("DailyDilemmas – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
