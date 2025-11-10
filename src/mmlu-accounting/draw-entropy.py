@@ -128,6 +128,14 @@ def get_statistics(result_files, retained_ids_list):
             key = "Qwen3-30B-A3B"
         elif "Qwen3-30B-A3B" in file_name and ("dt" in file_name):
             key = "Qwen3-30B-A3B-Disable"
+        elif "EXAONE-4.0-1.2B" in file_name and ("dt" not in file_name):
+            key = "EXAONE-4.0-1.2B"
+        elif "EXAONE-4.0-1.2B" in file_name and ("dt" in file_name):
+            key = "EXAONE-4.0-1.2B-Disable"
+        elif "EXAONE-4.0.1-32B" in file_name and ("dt" not in file_name):
+            key = "EXAONE-4.0.1-32B"
+        elif "EXAONE-4.0.1-32B" in file_name and ("dt" in file_name):
+            key = "EXAONE-4.0.1-32B-Disable"
         else:
             assert False, f"Unknown file name: {file_name}"
         file_to_metrics[key] = {}
