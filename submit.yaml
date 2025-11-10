@@ -230,54 +230,54 @@ jobs:
     - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp0.9_n1_dt
     - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp1.2_n1
     - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp1.2_n1_dt
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.0
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.0 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2 --disable_thinking
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.0_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.0_n1_dt
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n1_dt
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n1_dt
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n1_dt
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.0
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.0 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2
-    - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2 --disable_thinking
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.0_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.0_n1_dt
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.3_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.3_n1_dt
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.9_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.9_n1_dt
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp1.2_n1
-    - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp1.2_n1_dt
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.0
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.0 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.3
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.3 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.9
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.9 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 1.2
-    - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 1.2 --disable_thinking
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.0_n1
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.0_n1_dt
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.3_n1
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.3_n1_dt
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.9_n1
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.9_n1_dt
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp1.2_n1
-    - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp1.2_n1_dt
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.0
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.0 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.0_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.0_n1_dt
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n1_dt
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n1_dt
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n1_dt
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.0
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.0 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2
+    # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.0_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.0_n1_dt
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.3_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.3_n1_dt
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.9_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.9_n1_dt
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp1.2_n1
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp1.2_n1_dt
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.0
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.0 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.3
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.3 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.9
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.9 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 1.2
+    # - python src/medmcqa/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 1.2 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.0_n1
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.0_n1_dt
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.3_n1
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.3_n1_dt
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.9_n1
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.9_n1_dt
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp1.2_n1
+    # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp1.2_n1_dt
   submit_args:
     env:
       {
