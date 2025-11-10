@@ -42,13 +42,12 @@ def plot_statistics(file_to_metrics):
     })
 
     keys = [
-        "Qwen3-4B-Disable", "Qwen3-4B",
-        "Qwen3-32B-Disable", "Qwen3-32B",
-        "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
-        "Seed-36B-Disable", "Seed-36B",
-        "EXAONE-4.0.1-32B-Disable", "EXAONE-4.0.1-32B",
+        f"{model_name}-Disable_temp0.3", f"{model_name}_temp0.3",
+        f"{model_name}-Disable_temp0.6", f"{model_name}_temp0.6",
+        f"{model_name}-Disable_temp0.9", f"{model_name}_temp0.9",
+        f"{model_name}-Disable_temp1.2", f"{model_name}_temp1.2",
     ]
-    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "EXAONE-32B"]
+    group_labels = [f"0.3", f"0.6", f"0.9", f"1.2"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
@@ -57,8 +56,8 @@ def plot_statistics(file_to_metrics):
     bar_width = 0.8
 
     # Modern color palette
-    palette = sns.color_palette("Set2", 5)
-    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2 + [palette[4]] * 2
+    palette = sns.color_palette("flare", 5)
+    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2
 
     fig, ax = plt.subplots(dpi=1024)
 
@@ -93,12 +92,12 @@ def plot_statistics(file_to_metrics):
 
     # Add group labels (centered under every two bars)
     group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    group_colors = [palette[0], palette[1], palette[2], palette[3], palette[4]]
+    group_colors = [palette[0], palette[1], palette[2], palette[3]]
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
-        ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=15)
+        ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=0)
 
     ax.set_ylabel("Entropy")
-    ax.set_title("DailyDilemmas – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
+    ax.set_title(f"DailyDilemmas – Entropy (Mean ± 95% CI) – {model_name}", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
@@ -139,6 +138,8 @@ def get_statistics(result_files, retained_ids_list):
             key = "EXAONE-4.0.1-32B-Disable"
         else:
             assert False, f"Unknown file name: {file_name}"
+        temperature = file_name.split("/")[-1].split("_")[1]
+        key = f"{key}_{temperature}"
         file_to_metrics[key] = {}
         idx_to_results = {}
         retained_ids = retained_ids_list[i]
@@ -178,7 +179,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-4B"
+    model_name = "Qwen3-30B-A3B"
     save_file = f"outputs/daily_dilemmas/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
