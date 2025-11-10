@@ -13,18 +13,20 @@ def get_retained_keys(result_files):
     retained_ids_list = []
     for file_name in result_files:
         with open(file_name, "r") as f:
-            idx_set = set()
+            idx_to_options = {}
             for line in f:
                 item = json.loads(line)
                 idx = item["idx"]
-                answer_counts = item["answer_counts"]
-                if answer_counts is None:
+                if idx not in idx_to_options:
+                    idx_to_options[idx] = []
+                if item["option"] in ["1", "2", "3"]:
+                    idx_to_options[idx].append(item["option"])
+            retained_ids = set()
+            for idx, options in idx_to_options.items():
+                if len(options) < 35:
                     continue
-                total_count = sum(answer_counts.values())
-                if total_count < 35:
-                    continue
-                idx_set.add(idx)
-            retained_ids_list.append(idx_set)
+                retained_ids.add(idx)
+        retained_ids_list.append(retained_ids)
     return set.intersection(*retained_ids_list)
 
 
@@ -63,7 +65,7 @@ def plot_statistics(file_to_metrics):
     # Draw bars one by one so we can customize alpha
     bars = []
     for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
-        alpha_val = 0.75 if "Disable" in key else 1.0
+        alpha_val = 0.6 if "Disable" in key else 1.0
         bar = ax.bar(
             x[i], mean, bar_width,
             yerr=err, capsize=5,
@@ -96,14 +98,13 @@ def plot_statistics(file_to_metrics):
         ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=15)
 
     ax.set_ylabel("Entropy")
-    ax.set_title("MMLU Accounting – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
+    ax.set_title("DailyDilemmas – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    save_file = "outputs/mmlu-accounting/figures/entropy.png"
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
@@ -128,23 +129,38 @@ def get_statistics(result_files, retained_ids_list):
             key = "Qwen3-30B-A3B"
         elif "Qwen3-30B-A3B" in file_name and ("dt" in file_name):
             key = "Qwen3-30B-A3B-Disable"
+        elif "EXAONE-4.0-1.2B" in file_name and ("dt" not in file_name):
+            key = "EXAONE-4.0-1.2B"
+        elif "EXAONE-4.0-1.2B" in file_name and ("dt" in file_name):
+            key = "EXAONE-4.0-1.2B-Disable"
+        elif "EXAONE-4.0.1-32B" in file_name and ("dt" not in file_name):
+            key = "EXAONE-4.0.1-32B"
+        elif "EXAONE-4.0.1-32B" in file_name and ("dt" in file_name):
+            key = "EXAONE-4.0.1-32B-Disable"
         else:
             assert False, f"Unknown file name: {file_name}"
         file_to_metrics[key] = {}
+        idx_to_results = {}
         retained_ids = retained_ids_list[i]
-        entropy_list = []
         with open(file_name, "r") as f:
             for line in f:
                 item = json.loads(line)
                 idx = item["idx"]
                 if idx not in retained_ids:
                     continue
-                answer_counts = item["answer_counts"]
-                distribution = []
-                total_count = sum(answer_counts.values())
-                for answer, count in answer_counts.items():
-                    distribution.append(count / total_count)
-                entropy_list.append(entropy(np.array(distribution)))
+                if idx not in idx_to_results:
+                    idx_to_results[idx] = []
+                if item["option"] in ["1", "2", "3"]:
+                    idx_to_results[idx].append(item["option"])
+        entropy_list = []
+        for idx in idx_to_results:
+            results = idx_to_results[idx]
+            results_counter = dict(Counter(results))
+            distribution = []
+            for i in ["1", "2", "3"]:
+                distribution.append(results_counter.get(i, 0) / len(results))
+            entropy_value = entropy(np.array(distribution))
+            entropy_list.append(entropy_value)
 
         mean = np.mean(entropy_list)
         n = len(entropy_list)
@@ -162,46 +178,41 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
+    model_name = "Qwen3-4B"
+    save_file = f"outputs/daily_dilemmas/figures/temperature_{model_name}.png"
+
     retained_ids_list = []
     retained_ids = get_retained_keys([
-        "outputs/mmlu-accounting/processed_results/Qwen3-4B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Qwen3-4B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
     retained_ids = get_retained_keys([
-        "outputs/mmlu-accounting/processed_results/Qwen3-32B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Qwen3-32B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
     retained_ids = get_retained_keys([
-        "outputs/mmlu-accounting/processed_results/Qwen3-30B-A3B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Qwen3-30B-A3B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
     retained_ids = get_retained_keys([
-        "outputs/mmlu-accounting/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_counts.jsonl",
-    ])
-    retained_ids_list += [retained_ids] * 2
-    retained_ids = get_retained_keys([
-        "outputs/mmlu-accounting/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
 
     get_statistics([
-        "outputs/mmlu-accounting/processed_results/Qwen3-4B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Qwen3-4B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50.jsonl",
 
-        "outputs/mmlu-accounting/processed_results/Qwen3-32B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Qwen3-32B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50.jsonl",
 
-        "outputs/mmlu-accounting/processed_results/Qwen3-30B-A3B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Qwen3-30B-A3B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50.jsonl",
 
-        "outputs/mmlu-accounting/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_counts.jsonl",
-
-        "outputs/mmlu-accounting/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_counts.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50_dt.jsonl",
+        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50.jsonl",
     ], retained_ids_list)
