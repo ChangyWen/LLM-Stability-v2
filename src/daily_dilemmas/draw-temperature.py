@@ -83,10 +83,10 @@ def plot_statistics(file_to_metrics):
         center = bar.get_x() + bar.get_width() / 2
 
         # CI upper label (bold)
-        ax.text(center, upper + 0.008, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, upper + 0.008, f"{upper:.3f}", ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
 
         # CI lower label (bold)
-        ax.text(center, lower - 0.010, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, lower - 0.010, f"{lower:.3f}", ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
     # Simplified xtick labels for subconditions
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
@@ -112,14 +112,14 @@ def plot_statistics(file_to_metrics):
     # If defined later, recompute: group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
     # ax2.plot(group_positions, diffs, marker="o", linewidth=2.0, markersize=6, zorder=5, linestyle="--", label="ΔEntropy (Non-R. − R.)", color="gray")
     # Plot gray dashed connecting line
-    ax2.plot(group_positions, diffs, color="gray", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
+    ax2.plot(group_positions, diffs, color="black", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
 
     # Plot colored markers (group-colored)
     for pos, diff, color in zip(group_positions, diffs, group_colors):
         ax2.scatter(pos, diff, color=color, s=45, edgecolor="black", linewidth=0.6, zorder=5, label="_nolegend_")
 
     # Add invisible handle for legend entry
-    ax2.plot([], [], color="gray", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
+    ax2.plot([], [], color="black", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
 
     # Show legend
     ax2.legend(loc="best", frameon=True, fancybox=True, fontsize=9)

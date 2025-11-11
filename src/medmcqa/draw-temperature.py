@@ -54,6 +54,8 @@ def plot_statistics(file_to_metrics):
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
     diffs = [avg[i*2] - avg[i*2 + 1] for i in range(len(group_labels))]  # Non-R. − R.
     avg_accuracy = [file_to_metrics[k]["avg_accuracy"] for k in keys]
+    temp0_disable_avg_accuracy = file_to_metrics[f"{model_name}-Disable_temp0.0"]["avg_accuracy"]
+    temp0_avg_accuracy = file_to_metrics[f"{model_name}_temp0.0"]["avg_accuracy"]
 
     x = np.arange(len(keys))
     bar_width = 0.8
@@ -85,10 +87,10 @@ def plot_statistics(file_to_metrics):
         center = bar.get_x() + bar.get_width() / 2
 
         # CI upper label (bold)
-        ax.text(center, upper + 0.015, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, upper + 0.015, f"{upper:.3f}", ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
 
         # CI lower label (bold)
-        ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, lower - 0.025, f"{lower:.3f}", ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
     # Simplified xtick labels for subconditions
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
@@ -165,8 +167,19 @@ def plot_statistics(file_to_metrics):
             fontsize=8, fontweight="bold",
             color="blue"
         )
-    # ---- Combine legends from ax2 (ΔEntropy) and ax3 (Accuracy) into ONE legend ----
-    # First, remove any existing ax2 legend call you had earlier.
+    # ====== Add horizontal reference lines for temp0 accuracies ======
+    ax3.axhline(
+        y=temp0_disable_avg_accuracy,
+        color="blue", linestyle="--", linewidth=1.2,
+        alpha=0.9, label="Accuracy (temp.=0, Non-R.)"
+    )
+    ax3.axhline(
+        y=temp0_avg_accuracy,
+        color="blue", linestyle="-", linewidth=1.2,
+        alpha=0.9, label="Accuracy (temp.=0, R.)"
+    )
+
+    # ---- Combine legends from ax2 (ΔEntropy) and ax3 (Accuracy + baselines) into ONE legend ----
     handles1, labels1 = ax2.get_legend_handles_labels()
     handles2, labels2 = ax3.get_legend_handles_labels()
     all_handles = handles1 + handles2
@@ -175,7 +188,8 @@ def plot_statistics(file_to_metrics):
         all_handles, all_labels,
         loc="best",
         fontsize=9,
-        frameon=True, fancybox=True, framealpha=0.9, edgecolor="gray"
+        frameon=True, fancybox=True,
+        framealpha=0.9, edgecolor="gray"
     )
 
     ax.set_axisbelow(True)
@@ -262,7 +276,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-30B-A3B"
+    model_name = "Qwen3-4B"
     save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
