@@ -247,7 +247,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Seed-OSS-36B-Instruct"
+    model_name = "Qwen3-4B"
     save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
@@ -266,13 +266,10 @@ if __name__ == "__main__":
     get_statistics([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_counts.jsonl",
-
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_counts.jsonl",
-
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_counts.jsonl",
-
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
     ], retained_ids_list)
