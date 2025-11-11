@@ -99,7 +99,7 @@ def plot_statistics(file_to_metrics):
     # Remove default xlabel
     ax.set_xlabel("")
     # Add custom xlabel lower down (in axis coords)
-    ax.text(0.5, -0.28, "Model", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
+    ax.text(0.5, -0.15, "Temperature", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
 
     ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
     ax.set_title("MedMCQA – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
@@ -119,8 +119,8 @@ def plot_statistics(file_to_metrics):
     # Add invisible handle for legend entry
     ax2.plot([], [], color="gray", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
 
-    # Show legend
-    ax2.legend(loc="best", frameon=True, fancybox=True, fontsize=9)
+    # # Show legend
+    # ax2.legend(loc="best", frameon=True, fancybox=True, fontsize=9)
 
     # Zero baseline for reference
     # ax2.axhline(0, linestyle=":", linewidth=1.0, color="gray")
@@ -135,14 +135,6 @@ def plot_statistics(file_to_metrics):
 
     # Optional: keep secondary grid off (primary y-grid already on)
     ax2.grid(False)
-
-    ax.set_axisbelow(True)
-    for spine in ["top", "right"]:
-        ax.spines[spine].set_visible(False)
-    ax2.set_axisbelow(True)
-    for spine in ["top", "left"]:
-        ax2.spines[spine].set_visible(False)
-
 
     # ====== Third y-axis for Accuracy (hollow blue stars) ======
     ax3 = ax.twinx()
@@ -172,6 +164,16 @@ def plot_statistics(file_to_metrics):
         fontsize=9,
         frameon=True, fancybox=True, framealpha=0.9, edgecolor="gray"
     )
+
+    ax.set_axisbelow(True)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    ax2.set_axisbelow(True)
+    for spine in ["top", "left"]:
+        ax2.spines[spine].set_visible(False)
+    ax3.set_axisbelow(True)
+    for spine in ["top", "left"]:
+        ax3.spines[spine].set_visible(False)
 
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
@@ -261,7 +263,7 @@ if __name__ == "__main__":
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
     ])
-    retained_ids_list += [retained_ids] * 6
+    retained_ids_list += [retained_ids] * 8
 
     get_statistics([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_dt_counts.jsonl",
