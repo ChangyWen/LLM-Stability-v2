@@ -21,8 +21,12 @@ def get_retained_keys(result_files):
                 if answer_counts is None:
                     continue
                 total_count = sum(answer_counts.values())
-                if total_count < 35:
-                    continue
+                if "temp0.0" in file_name:
+                    if total_count < 1:
+                        continue
+                else:
+                    if total_count < 35:
+                        continue
                 idx_set.add(idx)
             retained_ids_list.append(idx_set)
     return set.intersection(*retained_ids_list)
@@ -124,7 +128,7 @@ def plot_statistics(file_to_metrics):
 
     # Zero baseline for reference
     # ax2.axhline(0, linestyle=":", linewidth=1.0, color="gray")
-    ax2.set_ylim(bottom=0)
+    # ax2.set_ylim(bottom=0)
 
     # Right-side y-axis label
     ax2.set_ylabel("ΔEntropy", fontsize=11, fontweight="bold")
@@ -138,7 +142,7 @@ def plot_statistics(file_to_metrics):
 
     # ====== Third y-axis for Accuracy (hollow blue stars) ======
     ax3 = ax.twinx()
-    ax3.spines["right"].set_position(("outward", 45))  # push a second right axis outward
+    ax3.spines["right"].set_position(("outward", 65))  # push a second right axis outward
     ax3.spines["right"].set_color("blue")
     ax3.spines["right"].set_linewidth(0.9)
     ax3.tick_params(axis="y", colors="blue")
@@ -149,9 +153,18 @@ def plot_statistics(file_to_metrics):
     ax3.scatter(
         x_all, avg_accuracy,
         marker="*", s=80,
-        facecolors="white", edgecolors="blue",
+        facecolors="blue", edgecolors="blue",
         linewidth=1.0, zorder=7, label="Accuracy"
     )
+    # Add value annotations for accuracy stars (blue, right side of marker)
+    for xi, acc in zip(x_all, avg_accuracy):
+        ax3.text(
+            xi + 0.1, acc,                 # slightly to the right of the star
+            f"{acc:.3f}",                  # formatted value
+            ha="left", va="center",
+            fontsize=8, fontweight="bold",
+            color="blue"
+        )
     # ---- Combine legends from ax2 (ΔEntropy) and ax3 (Accuracy) into ONE legend ----
     # First, remove any existing ax2 legend call you had earlier.
     handles1, labels1 = ax2.get_legend_handles_labels()
@@ -249,7 +262,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-4B"
+    model_name = "Qwen3-30B-A3B"
     save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
