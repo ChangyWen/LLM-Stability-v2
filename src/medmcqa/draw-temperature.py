@@ -13,20 +13,18 @@ def get_retained_keys(result_files):
     retained_ids_list = []
     for file_name in result_files:
         with open(file_name, "r") as f:
-            idx_to_options = {}
+            idx_set = set()
             for line in f:
                 item = json.loads(line)
                 idx = item["idx"]
-                if idx not in idx_to_options:
-                    idx_to_options[idx] = []
-                if item["option"] in ["1", "2", "3"]:
-                    idx_to_options[idx].append(item["option"])
-            retained_ids = set()
-            for idx, options in idx_to_options.items():
-                if len(options) < 35:
+                answer_counts = item["answer_counts"]
+                if answer_counts is None:
                     continue
-                retained_ids.add(idx)
-        retained_ids_list.append(retained_ids)
+                total_count = sum(answer_counts.values())
+                if total_count < 35:
+                    continue
+                idx_set.add(idx)
+            retained_ids_list.append(idx_set)
     return set.intersection(*retained_ids_list)
 
 
@@ -45,9 +43,8 @@ def plot_statistics(file_to_metrics):
         f"{model_name}-Disable_temp0.3", f"{model_name}_temp0.3",
         f"{model_name}-Disable_temp0.6", f"{model_name}_temp0.6",
         f"{model_name}-Disable_temp0.9", f"{model_name}_temp0.9",
-        f"{model_name}-Disable_temp1.2", f"{model_name}_temp1.2",
     ]
-    group_labels = [f"0.3", f"0.6", f"0.9", f"1.2"]
+    group_labels = [f"0.3", f"0.6", f"0.9"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
@@ -58,8 +55,8 @@ def plot_statistics(file_to_metrics):
 
     # Modern color palette
     palette = sns.color_palette("flare", 7)
-    colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2 + [palette[6]] * 2
-    group_colors = [palette[0], palette[2], palette[4], palette[6]]
+    colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2
+    group_colors = [palette[0], palette[2], palette[4]]
 
     fig, ax = plt.subplots(dpi=1024)
     ax2 = ax.twinx()
@@ -83,10 +80,10 @@ def plot_statistics(file_to_metrics):
         center = bar.get_x() + bar.get_width() / 2
 
         # CI upper label (bold)
-        ax.text(center, upper + 0.008, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, upper + 0.015, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
 
         # CI lower label (bold)
-        ax.text(center, lower - 0.010, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, lower - 0.025, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
 
     # Simplified xtick labels for subconditions
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
@@ -101,10 +98,10 @@ def plot_statistics(file_to_metrics):
     # Remove default xlabel
     ax.set_xlabel("")
     # Add custom xlabel lower down (in axis coords)
-    ax.text(0.5, -0.15, "Temperature", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
+    ax.text(0.5, -0.28, "Model", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
 
     ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
-    ax.set_title(f"DailyDilemmas – Entropy (Mean ± 95% CI) – {model_name}", pad=15, weight="bold")
+    ax.set_title("MedMCQA – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
 
@@ -174,27 +171,33 @@ def get_statistics(result_files, retained_ids_list):
         temperature = file_name.split("/")[-1].split("_")[1]
         key = f"{key}_{temperature}"
         file_to_metrics[key] = {}
-        idx_to_results = {}
         retained_ids = retained_ids_list[i]
+        entropy_list = []
         with open(file_name, "r") as f:
             for line in f:
                 item = json.loads(line)
                 idx = item["idx"]
                 if idx not in retained_ids:
                     continue
-                if idx not in idx_to_results:
-                    idx_to_results[idx] = []
-                if item["option"] in ["1", "2", "3"]:
-                    idx_to_results[idx].append(item["option"])
-        entropy_list = []
-        for idx in idx_to_results:
-            results = idx_to_results[idx]
-            results_counter = dict(Counter(results))
-            distribution = []
-            for i in ["1", "2", "3"]:
-                distribution.append(results_counter.get(i, 0) / len(results))
-            entropy_value = entropy(np.array(distribution))
-            entropy_list.append(entropy_value)
+                answer_counts = item["answer_counts"]
+                distribution = []
+                total_count = sum(answer_counts.values())
+                for answer, count in answer_counts.items():
+                    distribution.append(count / total_count)
+                entropy_list.append(entropy(np.array(distribution)))
+
+        accuracy_list = []
+        with open(file_name.replace("_counts.jsonl", "_correctness.jsonl"), "r") as f:
+            for line in f:
+                item = json.loads(line)
+                idx = item["idx"]
+                if idx not in retained_ids:
+                    continue
+                correct_count = item["correct_count"]
+                total_count = item["total_count"]
+                accuracy = correct_count / total_count
+                accuracy_list.append(accuracy)
+        file_to_metrics[key]["avg_accuracy"] = np.mean(accuracy_list)
 
         mean = np.mean(entropy_list)
         n = len(entropy_list)
@@ -206,38 +209,40 @@ def get_statistics(result_files, retained_ids_list):
         print(f"retained_ids: {len(retained_ids)}")
         print("avg:", f"{file_to_metrics[key]['avg']:.4f}")
         print("ci:", f"{file_to_metrics[key]['ci'][0]:.4f} - {file_to_metrics[key]['ci'][1]:.4f}")
+        print("avg_accuracy:", f"{file_to_metrics[key]['avg_accuracy']:.4f}")
         print("-" * 100)
 
     plot_statistics(file_to_metrics)
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-30B-A3B"
-    save_file = f"outputs/daily_dilemmas/figures/temperature_{model_name}.png"
+    model_name = "Seed-OSS-36B-Instruct"
+    save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
     retained_ids = get_retained_keys([
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_counts.jsonl",
     ])
-    retained_ids_list += [retained_ids] * 8
+    retained_ids_list += [retained_ids] * 2
+    retained_ids = get_retained_keys([
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_counts.jsonl",
+    ])
+    retained_ids_list += [retained_ids] * 2
+    retained_ids = get_retained_keys([
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
+    ])
+    retained_ids_list += [retained_ids] * 2
 
     get_statistics([
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.3_n50.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_counts.jsonl",
 
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.6_n50.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_counts.jsonl",
 
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp0.9_n50.jsonl",
-
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50_dt.jsonl",
-        f"outputs/daily_dilemmas/processed_results/{model_name}_temp1.2_n50.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
     ], retained_ids_list)
