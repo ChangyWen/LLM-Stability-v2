@@ -138,7 +138,13 @@ if __name__ == "__main__":
             for uuid in idx_to_uuid_to_answers[idx]:
                 answers = idx_to_uuid_to_answers[idx][uuid]
                 question = idx_to_uuid_to_question[idx][uuid]
-                results = get_counts(question, answers)
+                if "temp0.0" not in file_name:
+                    results = get_counts(question, answers)
+                else:
+                    if len(answers) == 1:
+                        results = {answers[0]: 1}
+                    else:
+                        results = None
                 if results is None:
                     continue
                 print(f"[{idx}] {uuid} {results}")
