@@ -143,6 +143,36 @@ def plot_statistics(file_to_metrics):
     for spine in ["top", "left"]:
         ax2.spines[spine].set_visible(False)
 
+
+    # ====== Third y-axis for Accuracy (hollow blue stars) ======
+    ax3 = ax.twinx()
+    ax3.spines["right"].set_position(("outward", 45))  # push a second right axis outward
+    ax3.spines["right"].set_color("blue")
+    ax3.spines["right"].set_linewidth(0.9)
+    ax3.tick_params(axis="y", colors="blue")
+    ax3.set_ylabel("Accuracy", fontsize=11, fontweight="bold", color="blue")
+    ax3.grid(False)
+    # Plot accuracy stars aligned with each bar position
+    x_all = list(range(len(keys)))
+    ax3.scatter(
+        x_all, avg_accuracy,
+        marker="*", s=80,
+        facecolors="white", edgecolors="blue",
+        linewidth=1.0, zorder=7, label="Accuracy"
+    )
+    # ---- Combine legends from ax2 (ΔEntropy) and ax3 (Accuracy) into ONE legend ----
+    # First, remove any existing ax2 legend call you had earlier.
+    handles1, labels1 = ax2.get_legend_handles_labels()
+    handles2, labels2 = ax3.get_legend_handles_labels()
+    all_handles = handles1 + handles2
+    all_labels = labels1 + labels2
+    ax.legend(
+        all_handles, all_labels,
+        loc="best",
+        fontsize=9,
+        frameon=True, fancybox=True, framealpha=0.9, edgecolor="gray"
+    )
+
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
