@@ -85,10 +85,10 @@ def plot_statistics(file_to_metrics):
         center = bar.get_x() + bar.get_width() / 2
 
         # CI upper label (bold)
-        ax.text(center, upper + 0.008, f"{upper:.2f}", ha="center", va="bottom", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, upper + 0.008, f"{upper:.3f}", ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
 
         # CI lower label (bold)
-        ax.text(center, lower - 0.010, f"{lower:.2f}", ha="center", va="top", fontsize=8, color="dimgray", fontweight="bold")
+        ax.text(center, lower - 0.010, f"{lower:.3f}", ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
     # Simplified xtick labels for subconditions
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
