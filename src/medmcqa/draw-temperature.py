@@ -49,6 +49,7 @@ def plot_statistics(file_to_metrics):
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
     diffs = [avg[i*2] - avg[i*2 + 1] for i in range(len(group_labels))]  # Non-R. − R.
+    avg_accuracy = [file_to_metrics[k]["avg_accuracy"] for k in keys]
 
     x = np.arange(len(keys))
     bar_width = 0.8
@@ -221,6 +222,8 @@ if __name__ == "__main__":
 
     retained_ids_list = []
     retained_ids = get_retained_keys([
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_dt_counts.jsonl",
@@ -231,6 +234,9 @@ if __name__ == "__main__":
     retained_ids_list += [retained_ids] * 6
 
     get_statistics([
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_counts.jsonl",
+
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_counts.jsonl",
 
