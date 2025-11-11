@@ -108,7 +108,7 @@ def plot_statistics(file_to_metrics):
     ax.text(0.5, -0.15, "Temperature", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
 
     ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
-    ax.set_title("MedMCQA – Entropy (Mean ± 95% CI)", pad=15, weight="bold")
+    ax.set_title(f"MedMCQA – Entropy (Mean ± 95% CI) – {model_name}", pad=15, weight="bold")
 
     ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
 
@@ -116,21 +116,14 @@ def plot_statistics(file_to_metrics):
     # If defined later, recompute: group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
     # ax2.plot(group_positions, diffs, marker="o", linewidth=2.0, markersize=6, zorder=5, linestyle="--", label="ΔEntropy (Non-R. − R.)", color="gray")
     # Plot gray dashed connecting line
-    ax2.plot(group_positions, diffs, color="gray", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
+    ax2.plot(group_positions, diffs, color="black", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
 
     # Plot colored markers (group-colored)
     for pos, diff, color in zip(group_positions, diffs, group_colors):
         ax2.scatter(pos, diff, color=color, s=45, edgecolor="black", linewidth=0.6, zorder=5, label="_nolegend_")
 
     # Add invisible handle for legend entry
-    ax2.plot([], [], color="gray", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
-
-    # # Show legend
-    # ax2.legend(loc="best", frameon=True, fancybox=True, fontsize=9)
-
-    # Zero baseline for reference
-    # ax2.axhline(0, linestyle=":", linewidth=1.0, color="gray")
-    # ax2.set_ylim(bottom=0)
+    ax2.plot([], [], color="black", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
 
     # Right-side y-axis label
     ax2.set_ylabel("ΔEntropy", fontsize=11, fontweight="bold")
@@ -156,7 +149,8 @@ def plot_statistics(file_to_metrics):
         x_all, avg_accuracy,
         marker="*", s=80,
         facecolors="blue", edgecolors="blue",
-        linewidth=1.0, zorder=7, label="Accuracy"
+        linewidth=1.0, zorder=7,
+        # label="Accuracy"
     )
     # Add value annotations for accuracy stars (blue, right side of marker)
     for xi, acc in zip(x_all, avg_accuracy):
@@ -276,7 +270,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-4B"
+    model_name = "Qwen3-30B-A3B"
     save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
