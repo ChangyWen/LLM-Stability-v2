@@ -56,8 +56,14 @@ def plot_statistics(file_to_metrics):
     bar_width = 0.8
 
     # Modern color palette
-    palette = sns.color_palette("Set2", 5)
-    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2
+    total_color_num = len(group_labels)
+    palette = sns.color_palette("Set2", total_color_num)
+    color_pool = [palette[i] for i in range(total_color_num)]
+    colors = []
+    group_colors = []
+    for i in range(total_color_num):
+        colors += [color_pool[i]] * 2
+        group_colors.append(color_pool[i])
 
     fig, ax = plt.subplots(dpi=1024)
 
@@ -92,7 +98,6 @@ def plot_statistics(file_to_metrics):
 
     # Add group labels (centered under every two bars)
     group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    group_colors = [palette[0], palette[1], palette[2], palette[3]]
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
         ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=15)
 

@@ -59,6 +59,7 @@ def plot_statistics(file_to_metrics):
     # Modern color palette
     palette = sns.color_palette("flare", 7)
     colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2 + [palette[6]] * 2
+    group_colors = [palette[0], palette[2], palette[4], palette[6]]
 
     fig, ax = plt.subplots(dpi=1024)
     ax2 = ax.twinx()
@@ -94,7 +95,6 @@ def plot_statistics(file_to_metrics):
 
     # Add group labels (centered under every two bars)
     group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    group_colors = [palette[0], palette[2], palette[4], palette[6]]
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
         ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=0)
 
