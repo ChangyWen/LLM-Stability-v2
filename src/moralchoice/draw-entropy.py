@@ -46,9 +46,8 @@ def plot_statistics(file_to_metrics):
         "Qwen3-32B-Disable", "Qwen3-32B",
         "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
         "Seed-36B-Disable", "Seed-36B",
-        "EXAONE-4.0.1-32B-Disable", "EXAONE-4.0.1-32B",
     ]
-    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "EXAONE-32B"]
+    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
@@ -57,9 +56,14 @@ def plot_statistics(file_to_metrics):
     bar_width = 0.8
 
     # Modern color palette
-    palette = sns.color_palette("Set2", 5)
-    colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2 + [palette[4]] * 2
-
+    total_color_num = len(group_labels)
+    palette = sns.color_palette("Set2", total_color_num)
+    color_pool = [palette[i] for i in range(total_color_num)]
+    colors = []
+    group_colors = []
+    for i in range(total_color_num):
+        colors += [color_pool[i]] * 2
+        group_colors.append(color_pool[i])
     fig, ax = plt.subplots(dpi=1024)
 
     # Draw bars one by one so we can customize alpha
@@ -93,7 +97,6 @@ def plot_statistics(file_to_metrics):
 
     # Add group labels (centered under every two bars)
     group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    group_colors = [palette[0], palette[1], palette[2], palette[3], palette[4]]
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
         ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=15)
 
@@ -135,14 +138,6 @@ def get_statistics(result_files, retained_ids_list):
             key = "Qwen3-30B-A3B"
         elif "Qwen3-30B-A3B" in file_name and ("dt" in file_name):
             key = "Qwen3-30B-A3B-Disable"
-        elif "EXAONE-4.0-1.2B" in file_name and ("dt" not in file_name):
-            key = "EXAONE-4.0-1.2B"
-        elif "EXAONE-4.0-1.2B" in file_name and ("dt" in file_name):
-            key = "EXAONE-4.0-1.2B-Disable"
-        elif "EXAONE-4.0.1-32B" in file_name and ("dt" not in file_name):
-            key = "EXAONE-4.0.1-32B"
-        elif "EXAONE-4.0.1-32B" in file_name and ("dt" in file_name):
-            key = "EXAONE-4.0.1-32B-Disable"
         else:
             assert False, f"Unknown file name: {file_name}"
         file_to_metrics[key] = {}
@@ -205,11 +200,6 @@ if __name__ == "__main__":
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
-    retained_ids = get_retained_keys([
-        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt.jsonl",
-        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50.jsonl",
-    ])
-    retained_ids_list += [retained_ids] * 2
 
     get_statistics([
         "outputs/moralchoice/processed_results/Qwen3-4B_temp0.6_n50_dt.jsonl",
@@ -223,7 +213,4 @@ if __name__ == "__main__":
 
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
-
-        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50_dt.jsonl",
-        "outputs/moralchoice/processed_results/EXAONE-4.0.1-32B_temp0.6_n50.jsonl",
     ], retained_ids_list)
