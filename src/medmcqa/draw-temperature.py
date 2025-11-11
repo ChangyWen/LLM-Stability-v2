@@ -223,18 +223,12 @@ if __name__ == "__main__":
     retained_ids = get_retained_keys([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_counts.jsonl",
-    ])
-    retained_ids_list += [retained_ids] * 2
-    retained_ids = get_retained_keys([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_counts.jsonl",
-    ])
-    retained_ids_list += [retained_ids] * 2
-    retained_ids = get_retained_keys([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
     ])
-    retained_ids_list += [retained_ids] * 2
+    retained_ids_list += [retained_ids] * 6
 
     get_statistics([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.3_n50_dt_counts.jsonl",
