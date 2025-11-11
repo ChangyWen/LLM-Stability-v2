@@ -49,6 +49,7 @@ def plot_statistics(file_to_metrics):
     group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "EXAONE-32B"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
+    avg_accuracy = [file_to_metrics[k]["avg_accuracy"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
 
     x = np.arange(len(keys))
@@ -59,6 +60,7 @@ def plot_statistics(file_to_metrics):
     colors = [palette[0]] * 2 + [palette[1]] * 2 + [palette[2]] * 2 + [palette[3]] * 2 + [palette[4]] * 2
 
     fig, ax = plt.subplots(dpi=1024)
+    ax2 = ax.twinx()
 
     # Draw bars one by one so we can customize alpha
     bars = []
@@ -107,6 +109,30 @@ def plot_statistics(file_to_metrics):
     ax.set_axisbelow(True)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
+
+    """drawing accuracy"""
+    # x positions for each condition (match bars)
+    x_all = list(range(len(keys)))  # every bar position
+    acc_all = avg_accuracy          # corresponding accuracy values
+
+    # Plot all points as black stars
+    ax2.scatter(
+        x_all, acc_all,
+        marker="*", s=80,
+        facecolors="blue", edgecolors="blue",
+        linewidth=0.6, zorder=6, label="Accuracy"
+    )
+
+    # Right axis styling
+    ax2.set_ylabel("Accuracy", fontsize=11, fontweight="bold", color="blue")
+    ax2.set_ylim(0, 1.05)  # adjust if your accuracy is not in [0,1]
+    ax2.tick_params(axis="y", colors="blue")  # tick labels blue
+    ax2.spines["right"].set_color("blue")
+    ax2.spines["right"].set_linewidth(0.8)
+    ax2.grid(False)
+    ax2.set_axisbelow(True)
+    for spine in ["top", "left"]:
+        ax2.spines[spine].set_visible(False)
 
     save_file = "outputs/mmlu-accounting/figures/entropy.png"
     plt.tight_layout()
@@ -165,10 +191,25 @@ def get_statistics(result_files, retained_ids_list):
         ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
         file_to_metrics[key]["avg"] = mean
         file_to_metrics[key]["ci"] = ci
+
+        accuracy_list = []
+        with open(file_name.replace("_counts.jsonl", "_correctness.jsonl"), "r") as f:
+            for line in f:
+                item = json.loads(line)
+                idx = item["idx"]
+                if idx not in retained_ids:
+                    continue
+                correct_count = item["correct_count"]
+                total_count = item["total_count"]
+                accuracy = correct_count / total_count
+                accuracy_list.append(accuracy)
+        file_to_metrics[key]["avg_accuracy"] = np.mean(accuracy_list)
+
         print(key)
         print(f"retained_ids: {len(retained_ids)}")
         print("avg:", f"{file_to_metrics[key]['avg']:.4f}")
         print("ci:", f"{file_to_metrics[key]['ci'][0]:.4f} - {file_to_metrics[key]['ci'][1]:.4f}")
+        print("avg_accuracy:", f"{file_to_metrics[key]['avg_accuracy']:.4f}")
         print("-" * 100)
 
     plot_statistics(file_to_metrics)
