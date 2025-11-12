@@ -363,18 +363,18 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name Seed-OSS-36B-Instruct_temp0.9_n50_dt
     # - python src/medmcqa/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.2_n50
     # - python src/medmcqa/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.2_n50_dt
-    - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.3
-    - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.3 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.9
-    - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.9 --disable_thinking
-    - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 1.2
-    - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 1.2 --disable_thinking
-    - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.3_n50
-    - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.3_n50_dt
-    - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.9_n50
-    - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.9_n50_dt
-    - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50
-    - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50_dt
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.3
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.3 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.9
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.9 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 1.2
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 1.2 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.3_n50
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.3_n50_dt
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.9_n50
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.9_n50_dt
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50_dt
     # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.3
     # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.3 --disable_thinking
     # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.9
