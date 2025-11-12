@@ -47,8 +47,9 @@ def plot_statistics(file_to_metrics):
         f"{model_name}-Disable_temp0.3", f"{model_name}_temp0.3",
         f"{model_name}-Disable_temp0.6", f"{model_name}_temp0.6",
         f"{model_name}-Disable_temp0.9", f"{model_name}_temp0.9",
+        f"{model_name}-Disable_temp1.2", f"{model_name}_temp1.2",
     ]
-    group_labels = [f"0.3", f"0.6", f"0.9"]
+    group_labels = [f"0.3", f"0.6", f"0.9", f"1.2"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
@@ -62,8 +63,8 @@ def plot_statistics(file_to_metrics):
 
     # Modern color palette
     palette = sns.color_palette("flare", 7)
-    colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2
-    group_colors = [palette[0], palette[2], palette[4]]
+    colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2 + [palette[6]] * 2
+    group_colors = [palette[0], palette[2], palette[4], palette[6]]
 
     fig, ax = plt.subplots(dpi=1024)
     ax2 = ax.twinx()
@@ -270,7 +271,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-30B-A3B"
+    model_name = "Qwen3-32B"
     save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
@@ -283,8 +284,10 @@ if __name__ == "__main__":
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp1.2_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp1.2_n50_counts.jsonl",
     ])
-    retained_ids_list += [retained_ids] * 8
+    retained_ids_list += [retained_ids] * 10
 
     get_statistics([
         f"outputs/medmcqa/processed_results/{model_name}_temp0.0_n1_dt_counts.jsonl",
@@ -295,4 +298,6 @@ if __name__ == "__main__":
         f"outputs/medmcqa/processed_results/{model_name}_temp0.6_n50_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_dt_counts.jsonl",
         f"outputs/medmcqa/processed_results/{model_name}_temp0.9_n50_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp1.2_n50_dt_counts.jsonl",
+        f"outputs/medmcqa/processed_results/{model_name}_temp1.2_n50_counts.jsonl",
     ], retained_ids_list)
