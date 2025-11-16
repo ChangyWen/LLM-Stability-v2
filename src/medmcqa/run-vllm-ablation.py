@@ -1,3 +1,4 @@
+from curses import raw
 import os
 import json
 import argparse
@@ -21,15 +22,19 @@ def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_bud
                     {"role": "user", "content": raw_prompt}
                 ], tokenize=False, add_generation_prompt=True)
             else:
-                prompt = tokenizer.apply_chat_template([
-                    {"role": "system", "content": "Your reasoning process (the steps within <think> ... </think>) should include only problem comprehension and/or relevant knowledge retrieval. Do not include any hypothesis generation, testing, reasoning, analysis, comparison, or evaluation. Stop your reasoning immediately by outputing '</think>' after completing question comprehension and/or knowledge recall."},
-                    {"role": "user", "content": raw_prompt}
-                ], tokenize=False, add_generation_prompt=True, enable_thinking=True)
+                prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, enable_thinking=True)
         else:
             assert isinstance(thinking_budget, int), f"thinking_budget must be an integer, but got {thinking_budget}"
             assert model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct", f"thinking_budget is only supported for model: {model_name}"
             prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, thinking_budget=thinking_budget)
     else:
+        raw_prompt = raw_prompt + "\n\n" + """
+**Your Task:**
+Answer the above question following the steps below:
+1. Interpret the question.
+2. Retrieve or recall the background knowledge, information, or facts that are directly relevant to understanding the question.
+3. Output your final answer.
+        """.strip()
         if model_name.startswith("Qwen/Qwen3") and ("2507" not in model_name) and ("Next" not in model_name):
             prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True, enable_thinking=False)
         elif model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct":

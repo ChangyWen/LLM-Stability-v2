@@ -388,12 +388,12 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50_dt
     ########### ablation studies (medmcqa) ###########
-    # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-4B --temperature 0.6
-    # - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp0.6_n50_step1
-    # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-32B --temperature 0.6
-    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.6_n50_step1
-    # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6
-    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_step1
+    - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
+    - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt_step1
+    # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-32B --temperature 0.6 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt_step1
+    # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt_step1
   submit_args:
     env:
       {
