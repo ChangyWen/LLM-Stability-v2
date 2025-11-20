@@ -25,7 +25,7 @@ code:
 
 target:
   service: sing
-  name: Recall
+  name: msrresrchbasicvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -37,8 +37,8 @@ storage:
 # SKU usage: G1 (single GPU), G4 (quad GPU), G4-V100 (1 machine, 4 V100 gpus), etc...
 jobs:
 - name: llm-stability
-  sku: G8-A100
-  sla_tier: Premium
+  sku: G8-H100
+  sla_tier: Standard
   command:
     ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
@@ -69,6 +69,7 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
     # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50
     # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50_dt
+    - python src/medmcqa/get-masks.py --file_name Qwen3-4B_temp0.6_n50
     ########### daily_dilemmas ###########
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
@@ -392,8 +393,8 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt_step1
     # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-32B --temperature 0.6 --disable_thinking
     # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt_step1
-    - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
-    - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt_step1
+    # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt_step1
   submit_args:
     env:
       {
