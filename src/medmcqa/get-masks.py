@@ -41,8 +41,7 @@ The part where the model summarizes key points, forms its final conclusion, or s
 
 Guidelines:
 * Extract each step's text verbatim from the response.
-* Note that the four steps (when present) appear in order in the response. They have no overlap. Together, they should cover the entire response.
-* If a step does not appear in the response, output an empty tag for that step.
+* Note that the four steps appear in order in the response. They have no overlap. Together, they should cover the entire response.
 * Enclose each extracted portion in tags:
     <step-1> ... </step-1>
     <step-2> ... </step-2>
