@@ -18,7 +18,7 @@ environment:
     - pip install tqdm
     - pip install pandas
     - pip install wandb
-    - pip install mamba-ssm[causal-conv1d] --no-build-isolation
+    # - pip install mamba-ssm[causal-conv1d] --no-build-isolation
 
 code:
   local_dir: /Users/wendacheng/Projects/LLM-Stability-v2
@@ -26,6 +26,7 @@ code:
 target:
   service: sing
   name: msrresrchbasicvc
+  # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -38,7 +39,9 @@ storage:
 jobs:
 - name: llm-stability
   sku: G8-H100
+  # sku: G8-A100
   sla_tier: Standard
+  # sla_tier: Premium
   command:
     ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6

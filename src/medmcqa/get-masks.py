@@ -40,7 +40,7 @@ Any portion where the model revisits earlier ideas, checks its reasoning, correc
 The part where the model summarizes key points, forms its final conclusion, or states the final answer.
 
 Guidelines:
-* Note that the four steps appear in order in the response. They have no overlap. Together, they should cover the entire response.
+* Note that the four steps appear in order in the response. They have no overlap. Together, they should cover the entire response (in other words, do not omit any part of the response).
 * Extract each step's text verbatim from the response. Do not add, remove, reword, or modify anything.
 * Enclose each extracted portion in tags:
     <step-1> ... </step-1>
@@ -113,12 +113,15 @@ def load_dataset(file, tokenizer):
 
                 except Exception as e:
                     continue
+
+            # if len(prompts) >= 200:
+            #     break
     return prompts, questions, original_responses, ground_truths, inner_idxs, uuids, idxs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, required=False, default="Qwen/Qwen3-Next-80B-A3B-Thinking")
+    parser.add_argument("--model_name", type=str, required=False, default="Qwen/Qwen3-30B-A3B-Thinking-2507")
     parser.add_argument("--tensor_parallel_size", type=int, required=False, default=8)
     parser.add_argument("--max_prompt_length", type=int, required=False, default=10240)
     parser.add_argument("--max_completion_length", type=int, required=False, default=10240)
@@ -141,7 +144,7 @@ if __name__ == "__main__":
 
     llm = LLM(
         model=args.model_name,
-        gpu_memory_utilization=0.9,
+        gpu_memory_utilization=0.8,
         max_model_len=args.max_prompt_length + args.max_completion_length,
         max_num_batched_tokens=args.max_prompt_length + args.max_completion_length,
         dtype="bfloat16",
