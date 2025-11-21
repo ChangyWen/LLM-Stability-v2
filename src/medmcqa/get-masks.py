@@ -40,7 +40,7 @@ Any portion where the model revisits earlier ideas, checks its reasoning, correc
 The part where the model summarizes key points, forms its final conclusion, or states the final answer.
 
 Guidelines:
-* Note that the four steps appear in order in the response. They have no overlap. Together, they should cover the entire response (in other words, do not omit any part of the response).
+* The four steps must appear in order, with no overlap, and together must cover the entire response (i.e., do not omit any part of the response).
 * Extract each step's text verbatim from the response. Do not add, remove, reword, or modify anything.
 * Enclose each extracted portion in tags:
     <step-1> ... </step-1>
