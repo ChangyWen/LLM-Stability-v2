@@ -161,7 +161,7 @@ if __name__ == "__main__":
             "original_response": original_responses[i],
             "partial_response": partial_responses[i],
             "ground_truth": ground_truths[i],
-            "response": text_output,
+            "responses": [text_output],
             "token_ids": token_ids,
             "logprobs": logprobs,
             "length": len(token_ids),
