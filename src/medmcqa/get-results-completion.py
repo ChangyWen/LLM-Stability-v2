@@ -75,7 +75,7 @@ def load_dataset(file, tokenizer):
         for line in f:
             item = json.loads(line.strip())
             idx = item["idx"]
-            question = item["prompt"]
+            question = item["question"]
             uuid = item["uuid"]
             ground_truth = item["ground_truth"]
             response = item["response"]
