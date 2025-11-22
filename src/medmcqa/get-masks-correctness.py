@@ -91,7 +91,8 @@ if __name__ == "__main__":
                 item = json.loads(line.strip())
                 idx = str(item["idx"])
                 uuid = str(item["uuid"])
-                idx_uuid = idx + "_" + uuid
+                partial_response_label = str(item["partial_response_label"])
+                idx_uuid = idx + "_" + uuid + "_" + partial_response_label
                 idx_uuid_done.append(idx_uuid)
     all_idx_uuid = set()
     with open(f"outputs/medmcqa/processed_results/{file_name}_counts.jsonl", "r") as f:
@@ -99,7 +100,8 @@ if __name__ == "__main__":
             item = json.loads(line.strip())
             idx = str(item["idx"])
             uuid = str(item["uuid"])
-            idx_uuid = idx + "_" + uuid
+            partial_response_label = str(item["partial_response_label"])
+            idx_uuid = idx + "_" + uuid + "_" + partial_response_label
             all_idx_uuid.add(idx_uuid)
     remaining_idx_uuid = all_idx_uuid - set(idx_uuid_done)
     remaining_idx_uuid = sorted(list(remaining_idx_uuid))
@@ -125,7 +127,7 @@ if __name__ == "__main__":
             question = item["question"]
             answer_counts = item["answer_counts"]
             partial_response_label = item["partial_response_label"]
-            if idx + "_" + uuid not in remaining_idx_uuid:
+            if idx + "_" + uuid + "_" + partial_response_label not in remaining_idx_uuid:
                 continue
             ground_truth = idx_to_ground_truth[idx]
             correct_count = 0
