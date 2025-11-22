@@ -95,7 +95,8 @@ if __name__ == "__main__":
                 item = json.loads(line.strip())
                 idx = str(item["idx"])
                 uuid = str(item["uuid"])
-                idx_uuid = idx + "_" + uuid
+                partial_response_label = str(item["partial_response_label"])
+                idx_uuid = idx + "_" + uuid + "_" + partial_response_label
                 idx_uuid_done.append(idx_uuid)
     all_idx_uuid = set()
     with open(f"outputs/medmcqa/processed_results/{file_name}.jsonl", "r") as f:
@@ -103,7 +104,8 @@ if __name__ == "__main__":
             item = json.loads(line.strip())
             idx = str(item["idx"])
             uuid = str(item["uuid"])
-            idx_uuid = idx + "_" + uuid
+            partial_response_label = str(item["partial_response_label"])
+            idx_uuid = idx + "_" + uuid + "_" + partial_response_label
             all_idx_uuid.add(idx_uuid)
     remaining_idx_uuid = all_idx_uuid - set(idx_uuid_done)
     remaining_idx_uuid = sorted(list(remaining_idx_uuid))
@@ -121,7 +123,7 @@ if __name__ == "__main__":
             uuid = str(item["uuid"])
             partial_response_label = str(item["partial_response_label"])
             question = item["question"]
-            if idx + "_" + uuid not in remaining_idx_uuid:
+            if idx + "_" + uuid + "_" + partial_response_label not in remaining_idx_uuid:
                 continue
             if idx not in idx_to_uuid_to_partial_response_label_to_answers:
                 idx_to_uuid_to_partial_response_label_to_answers[idx] = {}
