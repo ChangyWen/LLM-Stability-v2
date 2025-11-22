@@ -79,6 +79,7 @@ def load_dataset(file, tokenizer):
             uuid = item["uuid"]
             ground_truth = item["ground_truth"]
             responses = item["responses"]
+            partial_response_label = item["partial_response_label"] if "partial_response_label" in item else None
             for i, response in enumerate(responses):
                 try:
                     answer_after_think = remove_thinking_draft(response)
@@ -94,9 +95,10 @@ def load_dataset(file, tokenizer):
                     inner_idxs.append(i)
                     uuids.append(uuid)
                     idxs.append(idx)
+                    partial_response_labels.append(partial_response_label)
                 except Exception as e:
                     continue
-    return prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs
+    return prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs, partial_response_labels
 
 
 if __name__ == "__main__":
@@ -133,7 +135,7 @@ if __name__ == "__main__":
         trust_remote_code=True,
     )
 
-    prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs = load_dataset(file_name, llm.get_tokenizer())
+    prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs, partial_response_labels = load_dataset(file_name, llm.get_tokenizer())
 
     print(f"Processing [{args.model_name}] on [{file_name}] ({len(prompts)} prompts) ...")
     print(f"Results will be saved to [{save_file}] ...")
@@ -158,6 +160,7 @@ if __name__ == "__main__":
             "question": questions[i],
             "ground_truth": ground_truths[i],
             "response": response,
+            "partial_response_label": partial_response_labels[i],
         })
 
     # save to jsonl file
