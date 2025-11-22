@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 from datasets import Dataset
 from vllm import LLM, SamplingParams
-from typing import Optional, List
+from typing import Any, Optional, List
 import re
 import time
 from uuid import uuid4
@@ -78,26 +78,26 @@ def load_dataset(file, tokenizer):
             question = item["prompt"]
             uuid = item["uuid"]
             ground_truth = item["ground_truth"]
-            responses = item["responses"]
-            partial_response_label = item["partial_response_label"] if "partial_response_label" in item else None
-            for i, response in enumerate(responses):
-                try:
-                    answer_after_think = remove_thinking_draft(response)
-                    raw_prompt = PROMPT.format(question=question, response=answer_after_think)
-                    prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True)
-                    prompt_len = len(tokenizer.encode(prompt))
-                    if prompt_len > 10240:
-                        continue
-                    prompts.append(prompt)
-                    raw_prompts.append(raw_prompt)
-                    questions.append(question)
-                    ground_truths.append(ground_truth)
-                    inner_idxs.append(i)
-                    uuids.append(uuid)
-                    idxs.append(idx)
-                    partial_response_labels.append(partial_response_label)
-                except Exception as e:
+            response = item["response"]
+            partial_response_label = item["partial_response_label"]
+            inner_idx = item["inner_idx"]
+            try:
+                answer_after_think = remove_thinking_draft(response)
+                raw_prompt = PROMPT.format(question=question, response=answer_after_think)
+                prompt = tokenizer.apply_chat_template([{"role": "user", "content": raw_prompt}], tokenize=False, add_generation_prompt=True)
+                prompt_len = len(tokenizer.encode(prompt))
+                if prompt_len > 10240:
                     continue
+                prompts.append(prompt)
+                raw_prompts.append(raw_prompt)
+                questions.append(question)
+                ground_truths.append(ground_truth)
+                inner_idxs.append(inner_idx)
+                uuids.append(uuid)
+                idxs.append(idx)
+                partial_response_labels.append(partial_response_label)
+            except Exception as e:
+                continue
     return prompts, raw_prompts, questions, ground_truths, inner_idxs, uuids, idxs, partial_response_labels
 
 
@@ -156,11 +156,11 @@ if __name__ == "__main__":
             "idx": idxs[i],
             "uuid": uuids[i],
             "inner_idx": inner_idxs[i],
+            "partial_response_label": partial_response_labels[i],
             "final_answer": final_answer,
             "question": questions[i],
             "ground_truth": ground_truths[i],
             "response": response,
-            "partial_response_label": partial_response_labels[i],
         })
 
     # save to jsonl file
