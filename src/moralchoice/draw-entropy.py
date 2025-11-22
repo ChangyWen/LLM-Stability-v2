@@ -46,8 +46,10 @@ def plot_statistics(file_to_metrics):
         "Qwen3-32B-Disable", "Qwen3-32B",
         "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
         "Seed-36B-Disable", "Seed-36B",
+        "Nemotron-9B-Disable", "Nemotron-9B",
+        "Nemotron-12B-Disable", "Nemotron-12B",
     ]
-    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B"]
+    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
@@ -138,6 +140,14 @@ def get_statistics(result_files, retained_ids_list):
             key = "Qwen3-30B-A3B"
         elif "Qwen3-30B-A3B" in file_name and ("dt" in file_name):
             key = "Qwen3-30B-A3B-Disable"
+        elif "NVIDIA-Nemotron-Nano-9B-v2" in file_name and ("dt" not in file_name):
+            key = "Nemotron-9B"
+        elif "NVIDIA-Nemotron-Nano-9B-v2" in file_name and ("dt" in file_name):
+            key = "Nemotron-9B-Disable"
+        elif "NVIDIA-Nemotron-Nano-12B-v2" in file_name and ("dt" not in file_name):
+            key = "Nemotron-12B"
+        elif "NVIDIA-Nemotron-Nano-12B-v2" in file_name and ("dt" in file_name):
+            key = "Nemotron-12B-Disable"
         else:
             assert False, f"Unknown file name: {file_name}"
         file_to_metrics[key] = {}
@@ -200,6 +210,16 @@ if __name__ == "__main__":
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
     ])
     retained_ids_list += [retained_ids] * 2
+    retained_ids = get_retained_keys([
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50.jsonl",
+    ])
+    retained_ids_list += [retained_ids] * 2
+    retained_ids = get_retained_keys([
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50.jsonl",
+    ])
+    retained_ids_list += [retained_ids] * 2
 
     get_statistics([
         "outputs/moralchoice/processed_results/Qwen3-4B_temp0.6_n50_dt.jsonl",
@@ -213,4 +233,10 @@ if __name__ == "__main__":
 
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt.jsonl",
         "outputs/moralchoice/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50.jsonl",
+
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50.jsonl",
+
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt.jsonl",
+        "outputs/moralchoice/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50.jsonl",
     ], retained_ids_list)

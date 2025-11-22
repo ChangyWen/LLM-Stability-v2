@@ -25,8 +25,8 @@ code:
 
 target:
   service: sing
-  # name: msrresrchbasicvc
-  name: msrresrchvc
+  name: Ranking
+  # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -73,8 +73,8 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50
     # - python src/medmcqa/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50_dt
     # - python src/medmcqa/get-masks.py --file_name Qwen3-4B_temp0.6_n50
-    - python src/medmcqa/get-masks-completion.py --file_name Qwen3-4B_temperature_0.6_n50_masks
-    - python src/medmcqa/get-results-completion.py --file_name Qwen3-4B_temperature_0.6_n50_masks_completion
+    - python src/medmcqa/get-masks-completion.py --file_name Qwen3-4B_temp0.6_n50_masks
+    - python src/medmcqa/get-results-completion.py --file_name Qwen3-4B_temp0.6_n50_masks_completion
     ########### daily_dilemmas ###########
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
