@@ -70,6 +70,7 @@ def load_dataset(file, tokenizer):
     inner_idxs = []
     uuids = []
     idxs = []
+    partial_response_labels = []
     with open(file, "r") as f:
         for line in f:
             item = json.loads(line.strip())

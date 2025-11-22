@@ -57,13 +57,23 @@ def load_dataset(file, tokenizer):
             inner_idx = item["inner_idx"]
             question = item["question"]
             original_response = item["original_response"]
-            current_partial_response_labels = ["step_1", "step_2", "step_3", "step_4"]
+            current_partial_response_labels = [
+                ["step_1"],
+                ["step_1", "step_2"],
+                ["step_1", "step_2", "step_3"],
+            ]
             ground_truth = item["ground_truth"]
 
+            has_none = False
+            for tmp in ["step_1", "step_2", "step_3"]:
+                if item[tmp] is None:
+                    has_none = True
+                    break
+            if has_none:
+                continue
+
             for partial_response_label in current_partial_response_labels:
-                partial_response = item[partial_response_label]
-                if partial_response is None:
-                    continue
+                partial_response = "\n".join([item[label] for label in partial_response_label])
 
                 prompt = tokenizer.apply_chat_template([{"role": "user", "content": question}], tokenize=False, add_generation_prompt=True)
                 prompt += f"<think>\n{partial_response}\n</think>\n\n"
@@ -77,7 +87,7 @@ def load_dataset(file, tokenizer):
                 original_responses.append(original_response)
                 partial_responses.append(partial_response)
                 ground_truths.append(ground_truth)
-                partial_response_labels.append(partial_response_label)
+                partial_response_labels.append(",".join(partial_response_label))
                 inner_idxs.append(inner_idx)
                 uuids.append(uuid)
                 idxs.append(idx)
