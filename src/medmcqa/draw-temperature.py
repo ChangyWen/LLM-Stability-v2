@@ -173,6 +173,7 @@ def plot_statistics(file_to_metrics):
         color="blue", linestyle="-", linewidth=1.2,
         alpha=0.9, label="Accuracy (temp.=0, R.)"
     )
+    ax3.set_ylim(0.0, max(avg_accuracy + [temp0_disable_avg_accuracy, temp0_avg_accuracy]) + 0.05)
 
     # ---- Combine legends from ax2 (ΔEntropy) and ax3 (Accuracy + baselines) into ONE legend ----
     handles1, labels1 = ax2.get_legend_handles_labels()
@@ -271,7 +272,7 @@ def get_statistics(result_files, retained_ids_list):
 
 
 if __name__ == "__main__":
-    model_name = "Qwen3-32B"
+    model_name = "Seed-OSS-36B-Instruct"
     save_file = f"outputs/medmcqa/figures/temperature_{model_name}.png"
 
     retained_ids_list = []
