@@ -47,7 +47,7 @@ def get_retained_keys(result_files, dataset_name):
         return set.intersection(*retained_ids_list)
 
 
-def plot_statistics(file_to_metrics, dataset_name):
+def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True):
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -67,15 +67,14 @@ def plot_statistics(file_to_metrics, dataset_name):
         "Nemotron-12B-Disable", "Nemotron-12B",
     ]
     group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
+
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
-    # avg_accuracy = [file_to_metrics[k]["avg_accuracy"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
 
     x = np.arange(len(keys))
     bar_width = 0.8
 
-    # Modern color palette
     total_color_num = len(group_labels)
     palette = sns.color_palette("Set2", total_color_num)
     color_pool = [palette[i] for i in range(total_color_num)]
@@ -85,9 +84,7 @@ def plot_statistics(file_to_metrics, dataset_name):
         colors += [color_pool[i]] * 2
         group_colors.append(color_pool[i])
 
-    fig, ax = plt.subplots(dpi=1024)
-
-    # Draw bars one by one so we can customize alpha
+    # bars
     bars = []
     for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
         alpha_val = 0.75 if "Disable" in key else 1.0
@@ -99,55 +96,100 @@ def plot_statistics(file_to_metrics, dataset_name):
         )
         bars.append(bar[0])
 
-    # Add mean and CI labels
+    # CI labels
     for i, bar in enumerate(bars):
         mean = avg[i]
         lower, upper = ci[i]
         center = bar.get_x() + bar.get_width() / 2
+        ax.text(center, upper + 0.015, f"{upper:.3f}", ha="center", va="bottom",
+                fontsize=8, color="black", fontweight="bold")
+        ax.text(center, lower - 0.025, f"{lower:.3f}", ha="center", va="top",
+                fontsize=8, color="black", fontweight="bold")
 
-        # CI upper label (bold)
-        ax.text(center, upper + 0.015, f"{upper:.3f}", ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
-
-        # CI lower label (bold)
-        ax.text(center, lower - 0.025, f"{lower:.3f}", ha="center", va="top", fontsize=8, color="black", fontweight="bold")
-
-    # Simplified xtick labels for subconditions
+    # xticks
     sublabels = ["Non-R.", "R."] * (len(keys) // 2)
     ax.set_xticks(x)
     ax.set_xticklabels(sublabels, rotation=0, ha="center")
 
-    # Add group labels (centered under every two bars)
+    # group labels under pairs
     group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
     for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
-        ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=15)
+        ax.text(
+            pos, -0.09, label,
+            transform=ax.get_xaxis_transform(),
+            ha="center", va="top",
+            fontsize=10, fontweight="bold",
+            color=group_colors[i],
+            rotation=15
+        )
 
-    # Remove default xlabel
-    ax.set_xlabel("")
-    # Add custom xlabel lower down (in axis coords)
-    ax.text(0.5, -0.25, "Model", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
+    # axis labels (controlled externally)
+    ax.set_xlabel("" if not show_xlabel else "")
+    if show_ylabel:
+        ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
+    else:
+        ax.set_ylabel("")
 
-    ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
     dataset_name_to_title = {
         "daily_dilemmas": "DailyDilemmas",
         "medmcqa": "MedMCQA",
         "mmlu-accounting": "MMLU Accounting",
         "mmlu-law": "MMLU Law",
     }
-    ax.set_title(f"{dataset_name_to_title[dataset_name]}", pad=15, weight="bold")
-    # ax.set_ylim(0.0, 1.12)
+    ax.set_title(f"{dataset_name_to_title[dataset_name]}", pad=10, weight="bold")
 
-    ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
+    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    save_file = f"figures/entropy-{dataset_name}.png"
-    plt.tight_layout()
+    # If you want consistent y-limits across subplots, uncomment and adjust:
+    # ax.set_ylim(0.0, 1.12)
+
+    # Hide x tick labels if this subplot shouldn't show xlabel area
+    if not show_xlabel:
+        ax.tick_params(axis="x", labelbottom=False)
+
+
+def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8), dpi=1024)
+
+    dataset_order = [
+        "daily_dilemmas",
+        "medmcqa",
+        "mmlu-accounting",
+        "mmlu-law",
+    ]
+
+    for idx, dataset_name in enumerate(dataset_order):
+        r, c = divmod(idx, 2)
+        ax = axes[r, c]
+
+        # (2) remove xlabel for first row
+        show_xlabel = (r == 1)
+        # (3) remove ylabel for second column
+        show_ylabel = (c == 0)
+
+        draw_entropy_bars_on_ax(
+            ax=ax,
+            file_to_metrics=metrics_by_dataset[dataset_name],
+            dataset_name=dataset_name,
+            show_xlabel=show_xlabel,
+            show_ylabel=show_ylabel,
+        )
+
+    # shared labels
+    fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.03)
+    fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.02)
+
+    # leave room for sup labels
+    plt.tight_layout(rect=[0.04, 0.06, 1.0, 1.0])
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
+    print(f"Saved: {save_file}")
 
 
-def get_statistics(result_files, retained_ids_list, dataset_name):
+def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
     file_to_metrics = {}
     for i, file_name in enumerate(result_files):
         if "Seed-OSS-36B-Instruct" in file_name and ("dt" not in file_name):
@@ -238,7 +280,7 @@ def get_statistics(result_files, retained_ids_list, dataset_name):
         print("ci:", f"{file_to_metrics[key]['ci'][0]:.4f} - {file_to_metrics[key]['ci'][1]:.4f}")
         print("-" * 100)
 
-    plot_statistics(file_to_metrics, dataset_name)
+    return file_to_metrics
 
 
 if __name__ == "__main__":
@@ -248,6 +290,8 @@ if __name__ == "__main__":
         "mmlu-accounting",
         "mmlu-law",
     ]
+
+    metrics_by_dataset = {}
 
     for dataset_name in datasets:
         subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
@@ -284,7 +328,7 @@ if __name__ == "__main__":
         ], dataset_name)
         retained_ids_list += [retained_ids] * 2
 
-        get_statistics([
+        result_files = [
             f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50{subfix}.jsonl",
 
@@ -302,4 +346,13 @@ if __name__ == "__main__":
 
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50{subfix}.jsonl",
-        ], retained_ids_list, dataset_name)
+        ]
+
+        file_to_metrics = compute_file_to_metrics(
+            result_files=result_files,
+            retained_ids_list=retained_ids_list,
+            dataset_name=dataset_name,
+        )
+        metrics_by_dataset[dataset_name] = file_to_metrics
+
+    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png")
