@@ -176,7 +176,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
         )
 
     # shared labels
-    fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.001)
+    fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.1)
     fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
 
     # leave room for sup labels
