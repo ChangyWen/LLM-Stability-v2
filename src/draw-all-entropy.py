@@ -125,10 +125,7 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
 
     # axis labels (controlled externally)
     ax.set_xlabel("" if not show_xlabel else "")
-    if show_ylabel:
-        ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
-    else:
-        ax.set_ylabel("")
+    ax.set_ylabel("")
 
     dataset_name_to_title = {
         "daily_dilemmas": "DailyDilemmas",
@@ -179,8 +176,8 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
         )
 
     # shared labels
-    fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.03)
-    fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.02)
+    fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.001)
+    fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
 
     # leave room for sup labels
     plt.tight_layout(rect=[0.04, 0.06, 1.0, 1.0])
