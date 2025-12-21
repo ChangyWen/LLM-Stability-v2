@@ -295,7 +295,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
         delta_handle = h  # same style for all
 
     # shared left y label (match entropy_all.png style)
-    fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.02)
+    fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.1)
     fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
 
     # dataset title (optional; remove if you don’t want)
@@ -317,16 +317,16 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
     if delta_handle is not None:
         handles = handles + [delta_handle]
 
-    # Put legend closer to figure: increase anchor y and reduce rect bottom
+    # ✅ Legend ABOVE subplots and BELOW title
     fig.legend(
         handles=handles,
-        loc="lower center",
-        ncol=3,  # 4 models + 3 others => 3 columns looks balanced
+        loc="upper center",
+        ncol=3,
         frameon=False,
-        bbox_to_anchor=(0.5, 0.03),   # higher => closer to axes
-        fontsize=10,
+        bbox_to_anchor=(0.5, 0.935),  # between title (0.98) and axes
+        fontsize=12,
         handlelength=1.6,
-        columnspacing=1.2,
+        columnspacing=1.6,
         handletextpad=0.5,
     )
 
