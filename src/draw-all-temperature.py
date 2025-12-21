@@ -295,7 +295,8 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
         delta_handle = h  # same style for all
 
     # shared left y label (match entropy_all.png style)
-    fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
+    fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.02)
+    fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
 
     # dataset title (optional; remove if you don’t want)
     dataset_name_to_title = {
@@ -306,20 +307,13 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
     }
     fig.suptitle(dataset_name_to_title.get(dataset_name, dataset_name), fontsize=14, fontweight="bold", y=0.98)
 
-    # ---- Legend (same philosophy as entropy_all.png) ----
-    # 4 model colors
-    model_handles = [
-        mpatches.Patch(facecolor=model_to_color[m], edgecolor="black", label=m)
-        for m in model_names
-    ]
-
     # 2 style handles: non-reasoning empty, reasoning hatched (no color)
     style_handles = [
         mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
         mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
     ]
 
-    handles = model_handles + style_handles
+    handles = style_handles
     if delta_handle is not None:
         handles = handles + [delta_handle]
 
