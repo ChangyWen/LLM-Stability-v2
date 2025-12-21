@@ -73,8 +73,19 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     ci = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
 
-    x = np.arange(len(keys))
-    bar_width = 0.8
+    # x = np.arange(len(keys))
+    # bar_width = 0.8
+    n_models = len(model_labels)
+    intra_gap = 1.1
+    inter_gap = 1.6
+    x = []
+    pos = 0.0
+    for _ in range(n_models):
+        x.append(pos)
+        x.append(pos + intra_gap)
+        pos += (inter_gap + intra_gap)
+    x = np.array(x)
+    bar_width = 1.0
 
     # 6 colors for 6 models
     palette = sns.color_palette("Set2", len(model_labels))
@@ -123,7 +134,7 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     ax.set_ylabel("")
 
     dataset_name_to_title = {
-        "daily_dilemmas": "Ethical Dilemmas (DailyDilemmas)",
+        "daily_dilemmas": "Ethic (DailyDilemmas)",
         "medmcqa": "Medicine (MedMCQA)",
         "mmlu-accounting": "Finance (MMLU Accounting)",
         "mmlu-law": "Law (MMLU Law)",
@@ -137,7 +148,7 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
 
 
 def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
-    fig, axes = plt.subplots(2, 2, figsize=(14, 8), dpi=1024)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 8), dpi=1024)
 
     dataset_order = [
         "daily_dilemmas",
@@ -159,7 +170,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
 
     # --- Shared labels (tight spacing) ---
     # fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.02)
-    fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
+    fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
 
     # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
     model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
@@ -183,9 +194,9 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
         ncol=4,                  # adjust to taste (e.g., 4 or 5)
         frameon=False,
         bbox_to_anchor=(0.5, 0.01),
-        fontsize=10,
+        fontsize=12,
         handlelength=1.6,
-        columnspacing=1.2,
+        columnspacing=1.6,
         handletextpad=0.5,
     )
 
