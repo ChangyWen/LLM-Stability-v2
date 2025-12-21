@@ -333,7 +333,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
         loc="upper center",
         ncol=3,
         frameon=False,
-        bbox_to_anchor=(0.5, 0.935),  # between title (0.98) and axes
+        bbox_to_anchor=(0.5, 0.955),  # between title (0.98) and axes
         fontsize=12,
         handlelength=1.6,
         columnspacing=1.6,
