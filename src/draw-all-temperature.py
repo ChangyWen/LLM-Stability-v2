@@ -256,7 +256,7 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
     delta_handle = mlines.Line2D(
         [], [], color="black", linestyle=":", marker="o",
         markerfacecolor="white", markeredgecolor="black",
-        label="ΔEntropy (Non-R. − R.)"
+        label="ΔEntropy"
     )
     return delta_handle
 
@@ -297,10 +297,20 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
     # shared left y label (match entropy_all.png style)
     fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.1)
     fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
+    # shared right y label for twin axis (ΔEntropy)
+    fig.text(
+        1.01, 0.5,                      # x, y in figure coordinates
+        "ΔEntropy",
+        va="center",
+        ha="center",
+        rotation=-90,
+        fontsize=12,
+        fontweight="bold"
+    )
 
     # dataset title (optional; remove if you don’t want)
     dataset_name_to_title = {
-        "daily_dilemmas": "Ethical Dilemmas (DailyDilemmas)",
+        "daily_dilemmas": "Ethic (DailyDilemmas)",
         "medmcqa": "Medicine (MedMCQA)",
         "mmlu-accounting": "Finance (MMLU Accounting)",
         "mmlu-law": "Law (MMLU Law)",
