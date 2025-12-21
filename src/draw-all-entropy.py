@@ -87,12 +87,24 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     # bars
     bars = []
     for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
-        alpha_val = 0.75 if "Disable" in key else 1.0
+        # alpha_val = 0.75 if "Disable" in key else 1.0
+        # bar = ax.bar(
+        #     x[i], mean, bar_width,
+        #     yerr=err, capsize=5,
+        #     color=color, edgecolor="black",
+        #     linewidth=0.6, alpha=alpha_val
+        # )
+        is_disable = "Disable" in key
+        alpha_val = 1.0
+        hatch = "//" if is_disable else None
         bar = ax.bar(
             x[i], mean, bar_width,
             yerr=err, capsize=5,
-            color=color, edgecolor="black",
-            linewidth=0.6, alpha=alpha_val
+            color=color,
+            edgecolor="black",
+            linewidth=0.6,
+            alpha=alpha_val,
+            hatch=hatch
         )
         bars.append(bar[0])
 
