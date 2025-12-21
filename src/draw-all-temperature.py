@@ -1,14 +1,16 @@
 import json
-import math
-import matplotlib.pyplot as plt
-from collections import Counter
 import numpy as np
-from scipy.stats import fisher_exact, MonteCarloMethod
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from collections import Counter
 from scipy.stats import entropy
 from scipy import stats
 import seaborn as sns
 
 
+# ----------------------------
+# 1) Retained keys
+# ----------------------------
 def get_retained_keys(result_files, dataset_name):
     if dataset_name == "daily_dilemmas":
         retained_ids_list = []
@@ -22,13 +24,16 @@ def get_retained_keys(result_files, dataset_name):
                         idx_to_options[idx] = []
                     if item["option"] in ["1", "2", "3"]:
                         idx_to_options[idx].append(item["option"])
+
                 retained_ids = set()
                 for idx, options in idx_to_options.items():
                     if len(options) < 35:
                         continue
                     retained_ids.add(idx)
+
             retained_ids_list.append(retained_ids)
         return set.intersection(*retained_ids_list)
+
     else:
         retained_ids_list = []
         for file_name in result_files:
@@ -41,6 +46,8 @@ def get_retained_keys(result_files, dataset_name):
                     if answer_counts is None:
                         continue
                     total_count = sum(answer_counts.values())
+
+                    # your special rule
                     if "temp0.0" in file_name:
                         if total_count < 1:
                             continue
@@ -48,11 +55,126 @@ def get_retained_keys(result_files, dataset_name):
                         if total_count < 35:
                             continue
                     idx_set.add(idx)
-                retained_ids_list.append(idx_set)
+
+            retained_ids_list.append(idx_set)
         return set.intersection(*retained_ids_list)
 
 
-def plot_statistics(file_to_metrics, dataset_name, model_name):
+# ----------------------------
+# 2) Compute metrics for a single (dataset, model, temp, mode)
+# ----------------------------
+def compute_entropy_list(file_name, retained_ids, dataset_name):
+    ent_list = []
+
+    if dataset_name == "daily_dilemmas":
+        idx_to_results = {}
+        with open(file_name, "r") as f:
+            for line in f:
+                item = json.loads(line)
+                idx = item["idx"]
+                if idx not in retained_ids:
+                    continue
+                if idx not in idx_to_results:
+                    idx_to_results[idx] = []
+                if item["option"] in ["1", "2", "3"]:
+                    idx_to_results[idx].append(item["option"])
+
+        for idx, results in idx_to_results.items():
+            c = dict(Counter(results))
+            dist = np.array([
+                c.get("1", 0) / len(results),
+                c.get("2", 0) / len(results),
+                c.get("3", 0) / len(results),
+            ])
+            ent_list.append(entropy(dist))
+
+    else:
+        with open(file_name, "r") as f:
+            for line in f:
+                item = json.loads(line)
+                idx = item["idx"]
+                if idx not in retained_ids:
+                    continue
+                answer_counts = item["answer_counts"]
+                if answer_counts is None:
+                    continue
+                total = sum(answer_counts.values())
+                if total <= 0:
+                    continue
+                dist = np.array([v / total for v in answer_counts.values()])
+                ent_list.append(entropy(dist))
+
+    return np.array(ent_list, dtype=float)
+
+
+def mean_ci_t(entropy_list):
+    n = len(entropy_list)
+    mean = float(np.mean(entropy_list)) if n else float("nan")
+    if n >= 2:
+        sem = float(np.std(entropy_list, ddof=1) / np.sqrt(n))
+        ci = stats.t.interval(0.95, n - 1, loc=mean, scale=sem)
+    elif n == 1:
+        ci = (mean, mean)
+    else:
+        ci = (float("nan"), float("nan"))
+    return mean, ci
+
+
+# ----------------------------
+# 3) Build all metrics for one dataset across models
+# ----------------------------
+def build_metrics_for_dataset(dataset_name, model_names, temps):
+    subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
+
+    # metrics[model][temp]["non"/"reason"] = {"avg":..., "ci":...}
+    metrics = {m: {} for m in model_names}
+
+    for model in model_names:
+        # (A) compute retained ids once per model across all 8 files (4 temps × 2 modes)
+        all_files = []
+        for t in temps:
+            all_files += [
+                f"outputs/{dataset_name}/processed_results/{model}_temp{t}_n50_dt{subfix}.jsonl",  # non-reasoning
+                f"outputs/{dataset_name}/processed_results/{model}_temp{t}_n50{subfix}.jsonl",     # reasoning
+            ]
+        retained_ids = get_retained_keys(all_files, dataset_name)
+
+        # (B) compute stats per file
+        for t in temps:
+            non_file = f"outputs/{dataset_name}/processed_results/{model}_temp{t}_n50_dt{subfix}.jsonl"
+            rea_file = f"outputs/{dataset_name}/processed_results/{model}_temp{t}_n50{subfix}.jsonl"
+
+            ent_non = compute_entropy_list(non_file, retained_ids, dataset_name)
+            ent_rea = compute_entropy_list(rea_file, retained_ids, dataset_name)
+
+            non_mean, non_ci = mean_ci_t(ent_non)
+            rea_mean, rea_ci = mean_ci_t(ent_rea)
+
+            metrics[model][t] = {
+                "non": {"avg": non_mean, "ci": non_ci},
+                "reason": {"avg": rea_mean, "ci": rea_ci},
+                "retained_n": len(retained_ids),
+            }
+
+            print(f"[{dataset_name}] {model} temp{t} retained={len(retained_ids)}")
+            print(f"  non:   {non_mean:.4f}  CI {non_ci[0]:.4f}-{non_ci[1]:.4f}")
+            print(f"  reason:{rea_mean:.4f}  CI {rea_ci[0]:.4f}-{rea_ci[1]:.4f}")
+
+    return metrics
+
+
+# ----------------------------
+# 4) Drawing: one subplot (one model)
+# ----------------------------
+def draw_temperature_bars_on_ax(
+    ax,
+    model_metrics_for_one_model,   # dict: temp -> {non:{avg,ci}, reason:{avg,ci}}
+    model_title: str,
+    temps,
+    temp_to_color,
+    group_gap=0.8,                 # <-- increase this to add more space between temperature groups
+    bar_width=0.38,
+):
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -63,223 +185,177 @@ def plot_statistics(file_to_metrics, dataset_name, model_name):
         "axes.linewidth": 0.8,
     })
 
-    keys = [
-        f"{model_name}-Disable_temp0.3", f"{model_name}_temp0.3",
-        f"{model_name}-Disable_temp0.6", f"{model_name}_temp0.6",
-        f"{model_name}-Disable_temp0.9", f"{model_name}_temp0.9",
-        f"{model_name}-Disable_temp1.2", f"{model_name}_temp1.2",
-    ]
-    group_labels = [f"0.3", f"0.6", f"0.9", f"1.2"]
-    avg = [file_to_metrics[k]["avg"] for k in keys]
-    ci = [file_to_metrics[k]["ci"] for k in keys]
-    yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
-    diffs = [avg[i*2] - avg[i*2 + 1] for i in range(len(group_labels))]  # Non-R. − R.
+    # positions with gaps: each temp group has 2 bars, and groups are separated by `group_gap`
+    x_positions = []
+    bar_specs = []  # (x, mean, err_up, color, hatch, ci_low, ci_up)
+    cursor = 0.0
 
-    x = np.arange(len(keys))
-    bar_width = 0.8
+    for t in temps:
+        # group center is cursor, two bars are left/right of center
+        x_non = cursor - bar_width / 2
+        x_rea = cursor + bar_width / 2
 
-    # Modern color palette
-    palette = sns.color_palette("flare", 7)
-    colors = [palette[0]] * 2 + [palette[2]] * 2 + [palette[4]] * 2 + [palette[6]] * 2
-    group_colors = [palette[0], palette[2], palette[4], palette[6]]
+        non = model_metrics_for_one_model[t]["non"]
+        rea = model_metrics_for_one_model[t]["reason"]
 
-    fig, ax = plt.subplots(dpi=1024)
-    ax2 = ax.twinx()
+        non_mean = non["avg"]
+        non_ci = non["ci"]
+        non_err = non_ci[1] - non_mean
 
-    # Draw bars one by one so we can customize alpha
+        rea_mean = rea["avg"]
+        rea_ci = rea["ci"]
+        rea_err = rea_ci[1] - rea_mean
+
+        color = temp_to_color[t]
+
+        bar_specs.append((x_non, non_mean, non_err, color, None, non_ci[0], non_ci[1]))     # non-reasoning: no hatch
+        bar_specs.append((x_rea, rea_mean, rea_err, color, "//", rea_ci[0], rea_ci[1]))     # reasoning: hatch
+
+        x_positions += [x_non, x_rea]
+        cursor += 1.0 + group_gap
+
+    # draw bars
     bars = []
-    for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
-        alpha_val = 0.6 if "Disable" in key else 1.0
-        bar = ax.bar(
-            x[i], mean, bar_width,
+    for x, mean, err, color, hatch, lo, up in bar_specs:
+        b = ax.bar(
+            x, mean, bar_width,
             yerr=err, capsize=5,
-            color=color, edgecolor="black",
-            linewidth=0.6, alpha=alpha_val
+            color=color,
+            edgecolor="black",
+            linewidth=0.6,
+            alpha=1.0,
+            hatch=hatch
         )
-        bars.append(bar[0])
+        bars.append((b[0], lo, up))
 
-    # Add mean and CI labels
-    for i, bar in enumerate(bars):
-        mean = avg[i]
-        lower, upper = ci[i]
+    # CI labels
+    for bar, lo, up in bars:
         center = bar.get_x() + bar.get_width() / 2
+        ax.text(center, up + 0.015, f"{up:.3f}",
+                ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
+        ax.text(center, lo - 0.025, f"{lo:.3f}",
+                ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
-        # CI upper label (bold)
-        ax.text(center, upper + 0.008, f"{upper:.3f}", ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
+    # match entropy_all style: no xticks/labels
+    ax.set_xticks([])
+    ax.set_xticklabels([])
 
-        # CI lower label (bold)
-        ax.text(center, lower - 0.010, f"{lower:.3f}", ha="center", va="top", fontsize=8, color="black", fontweight="bold")
-
-    # Simplified xtick labels for subconditions
-    sublabels = ["Non-R.", "R."] * (len(keys) // 2)
-    ax.set_xticks(x)
-    ax.set_xticklabels(sublabels, rotation=0, ha="center")
-
-    # Add group labels (centered under every two bars)
-    group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
-        ax.text(pos, -0.09, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold", color=group_colors[i], rotation=0)
-
-    # Remove default xlabel
     ax.set_xlabel("")
-    # Add custom xlabel lower down (in axis coords)
-    ax.text(0.5, -0.15, "Temperature", transform=ax.transAxes, ha="center", va="top", fontsize=11, fontweight="bold")
+    ax.set_ylabel("")
 
-    ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
-    ax.set_title(f"DailyDilemmas – Entropy (Mean ± 95% CI) – {model_name}", pad=15, weight="bold")
+    ax.set_title(model_title, pad=10, weight="bold")
 
-    ax.grid(axis='y', linestyle='--', linewidth=0.7, alpha=0.6)
-
-    # Use the same group positions you computed for group labels (centers of each pair)
-    # If defined later, recompute: group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    # ax2.plot(group_positions, diffs, marker="o", linewidth=2.0, markersize=6, zorder=5, linestyle="--", label="ΔEntropy (Non-R. − R.)", color="gray")
-    # Plot gray dashed connecting line
-    ax2.plot(group_positions, diffs, color="black", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
-
-    # Plot colored markers (group-colored)
-    for pos, diff, color in zip(group_positions, diffs, group_colors):
-        ax2.scatter(pos, diff, color=color, s=45, edgecolor="black", linewidth=0.6, zorder=5, label="_nolegend_")
-
-    # Add invisible handle for legend entry
-    ax2.plot([], [], color="black", linestyle=":", marker="o", markerfacecolor="white", markeredgecolor="black", label="ΔEntropy (Non-R. − R.)")
-
-    # Show legend
-    ax2.legend(loc="best", frameon=True, fancybox=True, fontsize=9)
-
-    # Right-side y-axis label
-    ax2.set_ylabel("ΔEntropy", fontsize=11, fontweight="bold")
-
-    # Optional: make the right spine subtle
-    ax2.spines["right"].set_color("gray")
-    ax2.spines["right"].set_linewidth(0.8)
-
-    # Optional: keep secondary grid off (primary y-grid already on)
-    ax2.grid(False)
-
+    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
-    ax2.set_axisbelow(True)
-    for spine in ["top", "left"]:
-        ax2.spines[spine].set_visible(False)
 
-    plt.tight_layout()
-    plt.savefig(f"figures/temperature_{dataset_name}_{model_name}.png", bbox_inches="tight")
+
+# ----------------------------
+# 5) Drawing: one big figure per dataset (2×2 models)
+# ----------------------------
+def plot_dataset_temperature_2x2(
+    dataset_name,
+    metrics_for_dataset,   # metrics[model][temp]...
+    model_names_2x2,
+    temps,
+    save_file,
+    group_gap=0.8,         # increase to widen between temp groups
+):
+    # 4 temperature colors (one per temperature), like you used a "flare" feel earlier
+    temp_palette = sns.color_palette("flare", len(temps) * 2)  # more resolution
+    pick_idx = np.linspace(0, len(temp_palette) - 1, len(temps)).astype(int)
+    temp_colors = [temp_palette[i] for i in pick_idx]
+    temp_to_color = {t: temp_colors[i] for i, t in enumerate(temps)}
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8), dpi=1024)
+    axes = axes.flatten()
+
+    dataset_title_map = {
+        "daily_dilemmas": "Ethical Dilemmas (DailyDilemmas)",
+        "medmcqa": "Medicine (MedMCQA)",
+        "mmlu-accounting": "Finance (MMLU Accounting)",
+        "mmlu-law": "Law (MMLU Law)",
+    }
+
+    for i, model in enumerate(model_names_2x2):
+        ax = axes[i]
+        draw_temperature_bars_on_ax(
+            ax=ax,
+            model_metrics_for_one_model=metrics_for_dataset[model],
+            model_title=model,
+            temps=temps,
+            temp_to_color=temp_to_color,
+            group_gap=group_gap,
+            bar_width=0.38,
+        )
+
+    # one shared y-label (entropy_all style)
+    fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
+
+    # ---- Legend: temperatures (colored boxes) + 2 style boxes ----
+    temp_handles = [
+        mpatches.Patch(facecolor=temp_to_color[t], edgecolor="black", label=f"temp={t}")
+        for t in temps
+    ]
+    style_handles = [
+        mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
+        mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
+    ]
+
+    handles = temp_handles + style_handles
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=3,                    # 4 temps + 2 styles -> 2 rows nicely with ncol=3
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.02),  # closer to figure
+        fontsize=10,
+        handlelength=1.6,
+        columnspacing=1.2,
+        handletextpad=0.5,
+    )
+
+    # dataset title as suptitle (optional; consistent with your previous style)
+    fig.suptitle(dataset_title_map.get(dataset_name, dataset_name), y=0.98, fontsize=14, fontweight="bold")
+
+    # leave room for legend
+    plt.tight_layout(rect=[0.05, 0.10, 1.0, 0.95])
+    plt.savefig(save_file, bbox_inches="tight")
     plt.close()
+    print(f"Saved: {save_file}")
 
 
-def get_statistics(result_files, retained_ids_list, dataset_name, model_name):
-    file_to_metrics = {}
-    for i, file_name in enumerate(result_files):
-        if "Seed-OSS-36B-Instruct" in file_name and ("dt" not in file_name):
-            key = "Seed-OSS-36B-Instruct"
-        elif "Seed-OSS-36B-Instruct" in file_name and ("dt" in file_name):
-            key = "Seed-OSS-36B-Instruct-Disable"
-        elif "Qwen3-4B" in file_name and ("dt" not in file_name):
-            key = "Qwen3-4B"
-        elif "Qwen3-4B" in file_name and ("dt" in file_name):
-            key = "Qwen3-4B-Disable"
-        elif "Qwen3-32B" in file_name and ("dt" not in file_name):
-            key = "Qwen3-32B"
-        elif "Qwen3-32B" in file_name and ("dt" in file_name):
-            key = "Qwen3-32B-Disable"
-        elif "Qwen3-30B-A3B" in file_name and ("dt" not in file_name):
-            key = "Qwen3-30B-A3B"
-        elif "Qwen3-30B-A3B" in file_name and ("dt" in file_name):
-            key = "Qwen3-30B-A3B-Disable"
-        else:
-            assert False, f"Unknown file name: {file_name}"
-        temperature = file_name.split("/")[-1].split("_")[1]
-        key = f"{key}_{temperature}"
-        file_to_metrics[key] = {}
-        retained_ids = retained_ids_list[i]
-        entropy_list = []
-        if dataset_name == "daily_dilemmas":
-            idx_to_results = {}
-            with open(file_name, "r") as f:
-                for line in f:
-                    item = json.loads(line)
-                    idx = item["idx"]
-                    if idx not in retained_ids:
-                        continue
-                    if idx not in idx_to_results:
-                        idx_to_results[idx] = []
-                    if item["option"] in ["1", "2", "3"]:
-                        idx_to_results[idx].append(item["option"])
-            for idx in idx_to_results:
-                results = idx_to_results[idx]
-                results_counter = dict(Counter(results))
-                distribution = []
-                for i in ["1", "2", "3"]:
-                    distribution.append(results_counter.get(i, 0) / len(results))
-                entropy_value = entropy(np.array(distribution))
-                entropy_list.append(entropy_value)
-        else:
-            with open(file_name, "r") as f:
-                for line in f:
-                    item = json.loads(line)
-                    idx = item["idx"]
-                    if idx not in retained_ids:
-                        continue
-                    answer_counts = item["answer_counts"]
-                    distribution = []
-                    total_count = sum(answer_counts.values())
-                    for answer, count in answer_counts.items():
-                        distribution.append(count / total_count)
-                    entropy_list.append(entropy(np.array(distribution)))
-
-        mean = np.mean(entropy_list)
-        n = len(entropy_list)
-        sem = np.std(entropy_list) / np.sqrt(n)
-        ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
-        file_to_metrics[key]["avg"] = mean
-        file_to_metrics[key]["ci"] = ci
-        print(key)
-        print(f"retained_ids: {len(retained_ids)}")
-        print("avg:", f"{file_to_metrics[key]['avg']:.4f}")
-        print("ci:", f"{file_to_metrics[key]['ci'][0]:.4f} - {file_to_metrics[key]['ci'][1]:.4f}")
-        print("-" * 100)
-
-    plot_statistics(file_to_metrics, dataset_name, model_name)
-
-
+# ----------------------------
+# 6) Main
+# ----------------------------
 if __name__ == "__main__":
-    model_names = [
+    datasets = [
+        "daily_dilemmas",
+        "medmcqa",
+        # "mmlu-accounting",
+        # "mmlu-law",
+    ]
+
+    # Choose exactly 4 models for 2x2
+    model_names_2x2 = [
         "Qwen3-4B",
         "Qwen3-32B",
         "Qwen3-30B-A3B",
         "Seed-OSS-36B-Instruct",
     ]
-    datasets = [
-        "daily_dilemmas",
-        "medmcqa",
-    ]
+
+    # temperatures you used
+    temps = ["0.3", "0.6", "0.9", "1.2"]
 
     for dataset_name in datasets:
-        for model_name in model_names:
-            subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
-            retained_ids_list = []
-            retained_ids = get_retained_keys([
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.3_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.3_n50{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.6_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.6_n50{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.9_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.9_n50{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp1.2_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp1.2_n50{subfix}.jsonl",
-            ], dataset_name)
-            retained_ids_list += [retained_ids] * 8
+        metrics = build_metrics_for_dataset(dataset_name, model_names_2x2, temps)
 
-            result_files = [
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.3_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.3_n50{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.6_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.6_n50{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.9_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp0.9_n50{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp1.2_n50_dt{subfix}.jsonl",
-                f"outputs/{dataset_name}/processed_results/{model_name}_temp1.2_n50{subfix}.jsonl",
-            ]
-
-            get_statistics(result_files, retained_ids_list, dataset_name, model_name)
+        plot_dataset_temperature_2x2(
+            dataset_name=dataset_name,
+            metrics_for_dataset=metrics,
+            model_names_2x2=model_names_2x2,
+            temps=temps,
+            save_file=f"figures/temperature_{dataset_name}_all_models.png",
+            group_gap=0.9,   # <-- increase this to add more space between temperature groups
+        )
