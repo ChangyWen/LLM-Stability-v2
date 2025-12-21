@@ -252,9 +252,6 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
         ax2.spines[spine].set_visible(False)
     ax2.grid(False)
 
-    # If you truly want ΔEntropy baseline at 0 (like your snippet):
-    ax2.set_ylim(bottom=0)
-
     # return an invisible handle for Δ legend entry (so we only add once per figure)
     delta_handle = mlines.Line2D(
         [], [], color="black", linestyle=":", marker="o",
