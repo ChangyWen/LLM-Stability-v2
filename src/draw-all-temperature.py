@@ -164,6 +164,7 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
     keys = []
     for t in temperatures:
         keys += [f"{model_name}-Disable_temp{t}", f"{model_name}_temp{t}"]
+    temp_palette = sns.color_palette("flare", len(temperatures))
 
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci  = [file_to_metrics[k]["ci"] for k in keys]
@@ -190,16 +191,19 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
     bars = []
     for i, (mean, err, key) in enumerate(zip(avg, yerr, keys)):
         is_non_reasoning = ("-Disable_" in key)
+
+        # temperature index: every two bars share one temperature
+        temp_idx = i // 2
+        bar_color = temp_palette[temp_idx]
+
         hatch = None if is_non_reasoning else "//"
-        facecolor = "white" if is_non_reasoning else "white"  # keep clean, rely on edge + hatch
-        edgecolor = model_color
 
         b = ax.bar(
             x[i], mean, bar_width,
             yerr=err, capsize=4,
-            color=facecolor,
-            edgecolor=edgecolor,
-            linewidth=1.2,
+            color=bar_color,          # 🔴 solid temperature color
+            edgecolor="black",        # clean contrast
+            linewidth=1.1,
             hatch=hatch,
             zorder=3
         )
@@ -232,7 +236,7 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
     ax2 = ax.twinx()
 
     # temperature colors for Δ markers (like your origin: flare palette)
-    temp_palette = sns.color_palette("flare", len(temperatures))
+    # temp_palette = sns.color_palette("flare", len(temperatures))
     group_colors = temp_palette
 
     ax2.plot(group_positions, diffs, color="black", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
