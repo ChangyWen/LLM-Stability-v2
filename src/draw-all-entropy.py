@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import entropy
 from scipy import stats
 import seaborn as sns
+import matplotlib.patches as mpatches
 
 
 def get_retained_keys(result_files, dataset_name):
@@ -66,7 +67,7 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
         "Nemotron-9B-Disable", "Nemotron-9B",
         "Nemotron-12B-Disable", "Nemotron-12B",
     ]
-    group_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
+    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
 
     avg = [file_to_metrics[k]["avg"] for k in keys]
     ci = [file_to_metrics[k]["ci"] for k in keys]
@@ -75,61 +76,50 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     x = np.arange(len(keys))
     bar_width = 0.8
 
-    total_color_num = len(group_labels)
-    palette = sns.color_palette("Set2", total_color_num)
-    color_pool = [palette[i] for i in range(total_color_num)]
-    colors = []
-    group_colors = []
-    for i in range(total_color_num):
-        colors += [color_pool[i]] * 2
-        group_colors.append(color_pool[i])
+    # 6 colors for 6 models
+    palette = sns.color_palette("Set2", len(model_labels))
+    model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
 
-    # bars
+    # map each key -> its model label
+    def key_to_model(k: str) -> str:
+        # keys are like "Qwen3-4B-Disable" or "Qwen3-4B"
+        # strip "-Disable" if present to recover model name
+        return k.replace("-Disable", "")
+
     bars = []
-    for i, (mean, err, key, color) in enumerate(zip(avg, yerr, keys, colors)):
-        is_disable = "Disable" in key
-        alpha_val = 1.0
-        hatch = "//" if not is_disable else None
+    for i, (mean, err, key) in enumerate(zip(avg, yerr, keys)):
+        model = key_to_model(key)
+        color = model_to_color[model]
+
+        is_non_reasoning = ("Disable" in key)     # empty style
+        hatch = None if is_non_reasoning else "//" # reasoning: hatch
+
         bar = ax.bar(
             x[i], mean, bar_width,
             yerr=err, capsize=5,
             color=color,
             edgecolor="black",
             linewidth=0.6,
-            alpha=alpha_val,
+            alpha=1.0,
             hatch=hatch
         )
         bars.append(bar[0])
 
     # CI labels
     for i, bar in enumerate(bars):
-        mean = avg[i]
         lower, upper = ci[i]
         center = bar.get_x() + bar.get_width() / 2
-        ax.text(center, upper + 0.015, f"{upper:.3f}", ha="center", va="bottom",
-                fontsize=8, color="black", fontweight="bold")
-        ax.text(center, lower - 0.025, f"{lower:.3f}", ha="center", va="top",
-                fontsize=8, color="black", fontweight="bold")
+        ax.text(center, upper + 0.015, f"{upper:.3f}",
+                ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
+        ax.text(center, lower - 0.025, f"{lower:.3f}",
+                ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
-    # xticks
-    sublabels = ["Non-R.", "R."] * (len(keys) // 2)
-    ax.set_xticks(x)
-    ax.set_xticklabels(sublabels, rotation=0, ha="center")
+    # Remove ALL xtick labels (no sublabels, no group labels)
+    ax.set_xticks([])
+    ax.set_xticklabels([])
 
-    # group labels under pairs
-    group_positions = [0.5 + i * 2 for i in range(len(group_labels))]
-    for i, (pos, label) in enumerate(zip(group_positions, group_labels)):
-        ax.text(
-            pos, -0.09, label,
-            transform=ax.get_xaxis_transform(),
-            ha="center", va="top",
-            fontsize=10, fontweight="bold",
-            color=group_colors[i],
-            rotation=15
-        )
-
-    # axis labels (controlled externally)
-    ax.set_xlabel("" if not show_xlabel else "")
+    # no per-axes labels (you want shared labels only)
+    ax.set_xlabel("")
     ax.set_ylabel("")
 
     dataset_name_to_title = {
@@ -145,13 +135,6 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    # If you want consistent y-limits across subplots, uncomment and adjust:
-    # ax.set_ylim(0.0, 1.12)
-
-    # Hide x tick labels if this subplot shouldn't show xlabel area
-    if not show_xlabel:
-        ax.tick_params(axis="x", labelbottom=False)
-
 
 def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
     fig, axes = plt.subplots(2, 2, figsize=(14, 8), dpi=1024)
@@ -166,26 +149,48 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
     for idx, dataset_name in enumerate(dataset_order):
         r, c = divmod(idx, 2)
         ax = axes[r, c]
-
-        # (2) remove xlabel for first row
-        show_xlabel = (r == 1)
-        # (3) remove ylabel for second column
-        show_ylabel = (c == 0)
-
         draw_entropy_bars_on_ax(
             ax=ax,
             file_to_metrics=metrics_by_dataset[dataset_name],
             dataset_name=dataset_name,
-            show_xlabel=show_xlabel,
-            show_ylabel=show_ylabel,
+            show_xlabel=(r == 1),
+            show_ylabel=(c == 0),
         )
 
-    # shared labels
-    fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.1)
+    # --- Shared labels (tight spacing) ---
+    # fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.02)
     fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
 
-    # leave room for sup labels
-    plt.tight_layout(rect=[0.04, 0.06, 1.0, 1.0])
+    # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
+    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
+    palette = sns.color_palette("Set2", len(model_labels))
+
+    model_handles = [
+        mpatches.Patch(facecolor=palette[i], edgecolor="black", label=model_labels[i])
+        for i in range(len(model_labels))
+    ]
+
+    style_handles = [
+        mpatches.Patch(facecolor="white", edgecolor="black", label="Non-reasoning"),
+        mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="Reasoning"),
+    ]
+
+    # Put legend at the bottom, two rows: models then styles (or vice versa)
+    handles = model_handles + style_handles
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=4,                  # adjust to taste (e.g., 4 or 5)
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.01),
+        fontsize=10,
+        handlelength=1.6,
+        columnspacing=1.2,
+        handletextpad=0.5,
+    )
+
+    # leave room for legend + sup labels
+    plt.tight_layout(rect=[0.05, 0.10, 1.0, 1.0])
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
     print(f"Saved: {save_file}")
