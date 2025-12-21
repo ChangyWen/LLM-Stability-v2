@@ -123,10 +123,10 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     ax.set_ylabel("")
 
     dataset_name_to_title = {
-        "daily_dilemmas": "DailyDilemmas",
-        "medmcqa": "MedMCQA",
-        "mmlu-accounting": "MMLU Accounting",
-        "mmlu-law": "MMLU Law",
+        "daily_dilemmas": "Ethical Dilemmas (DailyDilemmas)",
+        "medmcqa": "Medicine (MedMCQA)",
+        "mmlu-accounting": "Finance (MMLU Accounting)",
+        "mmlu-law": "Law (MMLU Law)",
     }
     ax.set_title(f"{dataset_name_to_title[dataset_name]}", pad=10, weight="bold")
 
@@ -162,7 +162,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
     fig.supylabel("Entropy", fontsize=12, fontweight="bold", x=0.045)
 
     # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
-    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
+    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
     palette = sns.color_palette("Set2", len(model_labels))
 
     model_handles = [
@@ -171,8 +171,8 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
     ]
 
     style_handles = [
-        mpatches.Patch(facecolor="white", edgecolor="black", label="Non-reasoning"),
-        mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="Reasoning"),
+        mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
+        mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
     ]
 
     # Put legend at the bottom, two rows: models then styles (or vice versa)
