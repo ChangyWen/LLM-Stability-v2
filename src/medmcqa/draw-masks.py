@@ -100,12 +100,11 @@ def plot_statistics(file_to_metrics, save_file="outputs/medmcqa/figures/entropy-
         fmt="o",
         markersize=12.5,
         capsize=10,
-        capthick=2.0,
-        elinewidth=2.2,
+        elinewidth=3.0,
         color=point_color,
         markerfacecolor=point_color,
         markeredgecolor="black",
-        markeredgewidth=0.6,
+        markeredgewidth=1.6,
         alpha=1.0,
         zorder=3
     )
