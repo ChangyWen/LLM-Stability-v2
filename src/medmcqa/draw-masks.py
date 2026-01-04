@@ -86,8 +86,8 @@ def plot_statistics(file_to_metrics, save_file="outputs/medmcqa/figures/entropy-
     # ---- Line behind points (subtle) ----
     ax.plot(
         x, avg,
-        linestyle="-",
-        linewidth=1.6,
+        linestyle="--",
+        linewidth=2.2,
         color=point_color,
         alpha=0.85,
         zorder=2
@@ -100,11 +100,11 @@ def plot_statistics(file_to_metrics, save_file="outputs/medmcqa/figures/entropy-
         fmt="o",
         markersize=12.5,
         capsize=10,
-        elinewidth=3.0,
+        elinewidth=2.2,
         color=point_color,
         markerfacecolor=point_color,
         markeredgecolor="black",
-        markeredgewidth=1.6,
+        markeredgewidth=2.2,
         alpha=1.0,
         zorder=3
     )
@@ -135,7 +135,7 @@ def plot_statistics(file_to_metrics, save_file="outputs/medmcqa/figures/entropy-
     # ax.set_xlabel("Qwen3-4B", fontsize=11, fontweight="bold", labelpad=8)
 
     # ---- Y and title ----
-    ax.set_ylabel("Entropy", fontsize=11, fontweight="bold")
+    ax.set_ylabel("Decision-making Stability (Entropy)", fontsize=11, fontweight="bold")
     ax.set_xlabel("Reasoning Step(s)", fontsize=11, fontweight="bold")
 
     # ax.set_title("MedMCQA – Entropy (Mean ± 95% CI)", pad=12, weight="bold")
