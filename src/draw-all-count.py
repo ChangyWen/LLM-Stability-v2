@@ -148,18 +148,17 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
 
 
 def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
-    fig, axes = plt.subplots(2, 2, figsize=(16, 8), dpi=1024)
+    fig, axes = plt.subplots(3, 1, figsize=(12, 8), dpi=1024)
 
     dataset_order = [
-        "daily_dilemmas",
         "medmcqa",
         "mmlu-accounting",
         "mmlu-law",
     ]
 
     for idx, dataset_name in enumerate(dataset_order):
-        r, c = divmod(idx, 2)
-        ax = axes[r, c]
+        r, c = divmod(idx, 1)
+        ax = axes[idx]
         draw_entropy_bars_on_ax(
             ax=ax,
             file_to_metrics=metrics_by_dataset[dataset_name],
@@ -170,7 +169,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
 
     # --- Shared labels (tight spacing) ---
     # fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.02)
-    fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Number of Distinct Answers", fontsize=12, fontweight="bold", x=0.06)
 
     # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
     model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
@@ -237,60 +236,25 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
         else:
             assert False, f"Unknown file name: {file_name}"
 
-        if dataset_name == "daily_dilemmas":
-            file_to_metrics[key] = {}
-            idx_to_results = {}
-            retained_ids = retained_ids_list[i]
-            with open(file_name, "r") as f:
-                for line in f:
-                    item = json.loads(line)
-                    idx = item["idx"]
-                    if idx not in retained_ids:
-                        continue
-                    if idx not in idx_to_results:
-                        idx_to_results[idx] = []
-                    if item["option"] in ["1", "2", "3"]:
-                        idx_to_results[idx].append(item["option"])
-            entropy_list = []
-            for idx in idx_to_results:
-                results = idx_to_results[idx]
-                results_counter = dict(Counter(results))
-                distribution = []
-                for i in ["1", "2", "3"]:
-                    distribution.append(results_counter.get(i, 0) / len(results))
-                entropy_value = entropy(np.array(distribution))
-                entropy_list.append(entropy_value)
+        file_to_metrics[key] = {}
+        retained_ids = retained_ids_list[i]
+        total_distinct_answers_list = []
+        with open(file_name, "r") as f:
+            for line in f:
+                item = json.loads(line)
+                idx = item["idx"]
+                if idx not in retained_ids:
+                    continue
+                answer_counts = item["answer_counts"]
+                total_distinct_answers = len(answer_counts.keys())
+                total_distinct_answers_list.append(total_distinct_answers)
 
-            mean = np.mean(entropy_list)
-            n = len(entropy_list)
-            sem = stats.sem(entropy_list)
-            ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
-            file_to_metrics[key]["avg"] = mean
-            file_to_metrics[key]["ci"] = ci
-
-        else:
-            file_to_metrics[key] = {}
-            retained_ids = retained_ids_list[i]
-            entropy_list = []
-            with open(file_name, "r") as f:
-                for line in f:
-                    item = json.loads(line)
-                    idx = item["idx"]
-                    if idx not in retained_ids:
-                        continue
-                    answer_counts = item["answer_counts"]
-                    distribution = []
-                    total_count = sum(answer_counts.values())
-                    for answer, count in answer_counts.items():
-                        distribution.append(count / total_count)
-                    entropy_list.append(entropy(np.array(distribution)))
-
-            mean = np.mean(entropy_list)
-            n = len(entropy_list)
-            sem = stats.sem(entropy_list)
-            ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
-            file_to_metrics[key]["avg"] = mean
-            file_to_metrics[key]["ci"] = ci
+        mean = np.mean(total_distinct_answers_list)
+        n = len(total_distinct_answers_list)
+        sem = stats.sem(total_distinct_answers_list)
+        ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
+        file_to_metrics[key]["avg"] = mean
+        file_to_metrics[key]["ci"] = ci
 
         print(key)
         print(f"retained_ids: {len(retained_ids)}")
@@ -303,7 +267,6 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
 
 if __name__ == "__main__":
     datasets = [
-        "daily_dilemmas",
         "medmcqa",
         "mmlu-accounting",
         "mmlu-law",
@@ -373,4 +336,4 @@ if __name__ == "__main__":
         )
         metrics_by_dataset[dataset_name] = file_to_metrics
 
-    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png")
+    plot_all_datasets(metrics_by_dataset, save_file="figures/count-all.png")
