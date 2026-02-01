@@ -7,6 +7,7 @@ from scipy.stats import entropy
 from scipy import stats
 import seaborn as sns
 import matplotlib.patches as mpatches
+from collections import defaultdict
 
 
 def get_retained_keys(result_files, dataset_name):
@@ -46,166 +47,6 @@ def get_retained_keys(result_files, dataset_name):
                     idx_set.add(idx)
                 retained_ids_list.append(idx_set)
         return set.intersection(*retained_ids_list)
-
-
-def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True):
-    plt.rcParams.update({
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.labelsize": 11,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.edgecolor": "gray",
-        "axes.linewidth": 0.8,
-        # "text.usetex": True,
-    })
-
-    keys = [
-        "Qwen3-4B-Disable", "Qwen3-4B",
-        "Qwen3-32B-Disable", "Qwen3-32B",
-        "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
-        "Seed-36B-Disable", "Seed-36B",
-        "Nemotron-9B-Disable", "Nemotron-9B",
-        "Nemotron-12B-Disable", "Nemotron-12B",
-    ]
-    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
-
-    avg = [file_to_metrics[k]["avg"] for k in keys]
-    ci = [file_to_metrics[k]["ci"] for k in keys]
-    yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
-
-    # x = np.arange(len(keys))
-    # bar_width = 0.8
-    n_models = len(model_labels)
-    intra_gap = 1.1
-    inter_gap = 1.6
-    x = []
-    pos = 0.0
-    for _ in range(n_models):
-        x.append(pos)
-        x.append(pos + intra_gap)
-        pos += (inter_gap + intra_gap)
-    x = np.array(x)
-    bar_width = 1.0
-
-    # 6 colors for 6 models
-    palette = sns.color_palette("Set2", len(model_labels))
-    model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
-
-    # map each key -> its model label
-    def key_to_model(k: str) -> str:
-        # keys are like "Qwen3-4B-Disable" or "Qwen3-4B"
-        # strip "-Disable" if present to recover model name
-        return k.replace("-Disable", "")
-
-    bars = []
-    for i, (mean, err, key) in enumerate(zip(avg, yerr, keys)):
-        model = key_to_model(key)
-        color = model_to_color[model]
-
-        is_non_reasoning = ("Disable" in key)     # empty style
-        hatch = None if is_non_reasoning else "//" # reasoning: hatch
-
-        bar = ax.bar(
-            x[i], mean, bar_width,
-            yerr=err, capsize=5,
-            color=color,
-            edgecolor="black",
-            linewidth=0.6,
-            alpha=1.0,
-            hatch=hatch
-        )
-        bars.append(bar[0])
-
-    # CI labels
-    for i, bar in enumerate(bars):
-        lower, upper = ci[i]
-        center = bar.get_x() + bar.get_width() / 2
-        ax.text(center, upper + 0.015, f"{upper:.3f}",
-                ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
-        ax.text(center, lower - 0.025, f"{lower:.3f}",
-                ha="center", va="top", fontsize=8, color="black", fontweight="bold")
-
-    # Remove ALL xtick labels (no sublabels, no group labels)
-    ax.set_xticks([])
-    ax.set_xticklabels([])
-
-    # no per-axes labels (you want shared labels only)
-    ax.set_xlabel("")
-    ax.set_ylabel("")
-
-    dataset_name_to_title = {
-        "daily_dilemmas": r"Ethic ($\it{DailyDilemmas}$)",
-        "medmcqa": r"Medicine ($\it{MedMCQA}$)",
-        "mmlu-accounting": r"Finance ($\it{MMLU\!-\!Accounting}$)",
-        "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
-    }
-    ax.set_title(f"{dataset_name_to_title[dataset_name]}", pad=10, weight="bold")
-
-    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
-    ax.set_axisbelow(True)
-    for spine in ["top", "right"]:
-        ax.spines[spine].set_visible(False)
-
-
-def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
-    fig, axes = plt.subplots(2, 2, figsize=(16, 8), dpi=1024)
-
-    dataset_order = [
-        "daily_dilemmas",
-        "medmcqa",
-        "mmlu-accounting",
-        "mmlu-law",
-    ]
-
-    for idx, dataset_name in enumerate(dataset_order):
-        r, c = divmod(idx, 2)
-        ax = axes[r, c]
-        draw_entropy_bars_on_ax(
-            ax=ax,
-            file_to_metrics=metrics_by_dataset[dataset_name],
-            dataset_name=dataset_name,
-            show_xlabel=(r == 1),
-            show_ylabel=(c == 0),
-        )
-
-    # --- Shared labels (tight spacing) ---
-    # fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.02)
-    fig.supylabel("Output Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
-
-    # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
-    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
-    palette = sns.color_palette("Set2", len(model_labels))
-
-    model_handles = [
-        mpatches.Patch(facecolor=palette[i], edgecolor="black", label=model_labels[i])
-        for i in range(len(model_labels))
-    ]
-
-    style_handles = [
-        mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
-        mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
-    ]
-
-    # Put legend at the bottom, two rows: models then styles (or vice versa)
-    handles = model_handles + style_handles
-    fig.legend(
-        handles=handles,
-        loc="lower center",
-        ncol=4,                  # adjust to taste (e.g., 4 or 5)
-        frameon=False,
-        bbox_to_anchor=(0.5, 0.01),
-        fontsize=12,
-        handlelength=1.6,
-        columnspacing=1.6,
-        handletextpad=0.5,
-    )
-
-    # leave room for legend + sup labels
-    plt.tight_layout(rect=[0.05, 0.10, 1.0, 1.0])
-    plt.savefig(save_file, bbox_inches="tight")
-    plt.close()
-    print(f"Saved: {save_file}")
 
 
 def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
@@ -268,6 +109,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
+            file_to_metrics[key]["entropy_list"] = entropy_list
 
         else:
             file_to_metrics[key] = {}
@@ -292,6 +134,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
+            file_to_metrics[key]["entropy_list"] = entropy_list
 
         print(key)
         print(f"retained_ids: {len(retained_ids)}")
@@ -302,6 +145,143 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
     return file_to_metrics
 
 
+def draw_aggregated_entropy_bars(
+    model_to_metrics: dict,
+    save_file: str = "figures/entropy-aggregated.png",
+    title: str = "Aggregated (All Datasets)"
+):
+    # --- consistent global styling (same as your per-dataset plot) ---
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+        # "text.usetex": True,
+    })
+
+    fig, ax = plt.subplots(1, 1, figsize=(9, 4.8), dpi=1024)
+
+    # Order must match your previous plotting logic
+    keys = [
+        "Qwen3-4B-Disable", "Qwen3-4B",
+        "Qwen3-32B-Disable", "Qwen3-32B",
+        "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
+        "Seed-36B-Disable", "Seed-36B",
+        "Nemotron-9B-Disable", "Nemotron-9B",
+        "Nemotron-12B-Disable", "Nemotron-12B",
+    ]
+
+    # Model labels used for color mapping (same palette rule)
+    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
+
+    # --- x positions (same intra/inter gap layout) ---
+    n_models = len(model_labels)
+    intra_gap = 1.1
+    inter_gap = 1.6
+    x = []
+    pos = 0.0
+    for _ in range(n_models):
+        x.append(pos)
+        x.append(pos + intra_gap)
+        pos += (inter_gap + intra_gap)
+    x = np.array(x)
+    bar_width = 1.0
+
+    # --- same color set ---
+    palette = sns.color_palette("Set2", len(model_labels))
+    model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
+
+    def key_to_model(k: str) -> str:
+        return k.replace("-Disable", "")
+
+    # --- pull metrics + draw bars ---
+    avg = [model_to_metrics[k]["avg"] for k in keys]
+    ci = [model_to_metrics[k]["ci"] for k in keys]
+    yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
+
+    bars = []
+    for i, (mean, err, key) in enumerate(zip(avg, yerr, keys)):
+        model = key_to_model(key)
+        color = model_to_color[model]
+
+        is_non_reasoning = ("Disable" in key)
+        hatch = None if is_non_reasoning else "//"
+
+        bar = ax.bar(
+            x[i], mean, bar_width,
+            yerr=err, capsize=5,
+            color=color,
+            edgecolor="black",
+            linewidth=0.6,
+            alpha=1.0,
+            hatch=hatch
+        )
+        bars.append(bar[0])
+
+    # --- CI labels (same style) ---
+    for i, bar in enumerate(bars):
+        lower, upper = ci[i]
+        center = bar.get_x() + bar.get_width() / 2
+        ax.text(center, upper + 0.015, f"{upper:.3f}",
+                ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
+        ax.text(center, lower - 0.025, f"{lower:.3f}",
+                ha="center", va="top", fontsize=8, color="black", fontweight="bold")
+
+    # --- axes cosmetics (match your per-dataset style) ---
+    ax.set_xticks([])
+    ax.set_xticklabels([])
+    ax.set_xlabel("")
+    ax.set_ylabel("")  # shared ylabel via fig.supylabel
+    ax.set_title(title, pad=10, weight="bold")
+
+    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+
+    # --- shared ylabel (same text) ---
+    fig.supylabel("Output Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
+
+    # --- same legend structure ---
+    legend_model_labels = [
+        "Qwen3-4B",
+        "Qwen3-32B",
+        "Qwen3-30B-A3B",
+        "Seed-OSS-36B-Instruct",
+        "NVIDIA-Nemotron-Nano-9B-v2",
+        "NVIDIA-Nemotron-Nano-12B-v2",
+    ]
+    model_handles = [
+        mpatches.Patch(facecolor=palette[i], edgecolor="black", label=legend_model_labels[i])
+        for i in range(len(legend_model_labels))
+    ]
+    style_handles = [
+        mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
+        mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
+    ]
+    handles = model_handles + style_handles
+
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=4,
+        frameon=False,
+        bbox_to_anchor=(0.54, 0.01),
+        fontsize=10,
+        handlelength=1.6,
+        columnspacing=1.6,
+        handletextpad=0.5,
+    )
+
+    plt.tight_layout(rect=[0.05, 0.10, 1.0, 1.0])
+    plt.savefig(save_file, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {save_file}")
+
+
 if __name__ == "__main__":
     datasets = [
         "daily_dilemmas",
@@ -310,7 +290,7 @@ if __name__ == "__main__":
         "mmlu-law",
     ]
 
-    metrics_by_dataset = {}
+    model_to_entropy_list = defaultdict(list)
 
     for dataset_name in datasets:
         subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
@@ -372,6 +352,24 @@ if __name__ == "__main__":
             retained_ids_list=retained_ids_list,
             dataset_name=dataset_name,
         )
-        metrics_by_dataset[dataset_name] = file_to_metrics
+        for key in file_to_metrics:
+            new_key = key.replace("_counts.jsonl", "").replace(".jsonl", "")
+            new_key = new_key.split("/")[-1]
+            model_to_entropy_list[new_key] += file_to_metrics[key]["entropy_list"]
 
-    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png")
+    model_to_metrics = {}
+    for model in model_to_entropy_list:
+        mean = np.mean(model_to_entropy_list[model])
+        n = len(model_to_entropy_list[model])
+        sem = stats.sem(model_to_entropy_list[model])
+        ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
+        model_to_metrics[model] = {
+            "avg": mean,
+            "ci": ci,
+        }
+
+    draw_aggregated_entropy_bars(
+        model_to_metrics=model_to_metrics,
+        save_file="figures/entropy-aggregated.png",
+        title="All Datasets"
+    )
