@@ -57,6 +57,7 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
         "ytick.labelsize": 10,
         "axes.edgecolor": "gray",
         "axes.linewidth": 0.8,
+        # "text.usetex": True,
     })
 
     keys = [
@@ -134,10 +135,10 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     ax.set_ylabel("")
 
     dataset_name_to_title = {
-        "daily_dilemmas": "Ethic (DailyDilemmas)",
-        "medmcqa": "Medicine (MedMCQA)",
-        "mmlu-accounting": "Finance (MMLU Accounting)",
-        "mmlu-law": "Law (MMLU Law)",
+        "daily_dilemmas": r"Ethic ($\it{DailyDilemmas}$)",
+        "medmcqa": r"Medicine ($\it{MedMCQA}$)",
+        "mmlu-accounting": r"Finance ($\it{MMLU\!-\!Accounting}$)",
+        "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
     }
     ax.set_title(f"{dataset_name_to_title[dataset_name]}", pad=10, weight="bold")
 
@@ -170,7 +171,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
 
     # --- Shared labels (tight spacing) ---
     # fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.02)
-    fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Output Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
 
     # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
     model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]

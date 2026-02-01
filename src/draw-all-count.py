@@ -134,10 +134,10 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     ax.set_ylabel("")
 
     dataset_name_to_title = {
-        "daily_dilemmas": "Ethic (DailyDilemmas)",
-        "medmcqa": "Medicine (MedMCQA)",
-        "mmlu-accounting": "Finance (MMLU Accounting)",
-        "mmlu-law": "Law (MMLU Law)",
+        "daily_dilemmas": r"Ethic ($\it{DailyDilemmas}$)",
+        "medmcqa": r"Medicine ($\it{MedMCQA}$)",
+        "mmlu-accounting": r"Finance ($\it{MMLU\!-\!Accounting}$)",
+        "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
     }
     ax.set_title(f"{dataset_name_to_title[dataset_name]}", pad=10, weight="bold")
 

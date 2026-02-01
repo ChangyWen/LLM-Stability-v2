@@ -296,7 +296,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
 
     # shared left y label (match entropy_all.png style)
     fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.1)
-    fig.supylabel("Decision-making Stability (Entropy)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Output Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
     # shared right y label for twin axis (ΔEntropy)
     fig.text(
         1.01, 0.5,                      # x, y in figure coordinates
@@ -310,10 +310,10 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
 
     # dataset title (optional; remove if you don’t want)
     dataset_name_to_title = {
-        "daily_dilemmas": "Ethic (DailyDilemmas)",
-        "medmcqa": "Medicine (MedMCQA)",
-        "mmlu-accounting": "Finance (MMLU Accounting)",
-        "mmlu-law": "Law (MMLU Law)",
+        "daily_dilemmas": r"Ethic ($\it{DailyDilemmas}$)",
+        "medmcqa": r"Medicine ($\it{MedMCQA}$)",
+        "mmlu-accounting": r"Finance ($\it{MMLU\!-\!Accounting}$)",
+        "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
     }
     fig.suptitle(dataset_name_to_title.get(dataset_name, dataset_name), fontsize=14, fontweight="bold", y=0.98)
 
