@@ -296,7 +296,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
 
     # shared left y label (match entropy_all.png style)
     fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.1)
-    fig.supylabel("Output Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
     # shared right y label for twin axis (ΔEntropy)
     fig.text(
         1.01, 0.5,                      # x, y in figure coordinates

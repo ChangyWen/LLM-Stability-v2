@@ -135,7 +135,7 @@ def plot_statistics(file_to_metrics, save_file="outputs/medmcqa/figures/entropy-
     # ax.set_xlabel("Qwen3-4B", fontsize=11, fontweight="bold", labelpad=8)
 
     # ---- Y and title ----
-    ax.set_ylabel("Decision-making Stability (Entropy)", fontsize=11, fontweight="bold")
+    ax.set_ylabel("Entropy (Decision-making Stability)", fontsize=11, fontweight="bold")
     ax.set_xlabel("Reasoning Step(s)", fontsize=11, fontweight="bold")
 
     # ax.set_title("MedMCQA – Entropy (Mean ± 95% CI)", pad=12, weight="bold")
