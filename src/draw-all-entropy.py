@@ -64,6 +64,36 @@ def p_to_stars(p):
         return ""
 
 
+def paired_entropy_test_one_sided(file_to_metrics, model_base):
+    """
+    Test H1: entropy(reasoning) < entropy(non-reasoning)
+    Paired over common idx.
+    Requires file_to_metrics[key]["idx_to_entropy"] to exist for both conditions.
+    """
+    k_non = f"{model_base}-Disable"   # non-reasoning
+    k_reason = f"{model_base}"       # reasoning
+
+    a = file_to_metrics[k_non]["idx_to_entropy"]
+    b = file_to_metrics[k_reason]["idx_to_entropy"]
+
+    common = sorted(set(a.keys()) & set(b.keys()))
+    x_non = np.array([a[i] for i in common], dtype=float)
+    x_reason = np.array([b[i] for i in common], dtype=float)
+
+    diff = x_reason - x_non   # want diff < 0
+    mean_diff = float(diff.mean())
+    median_diff = float(np.median(diff))
+    sd = float(diff.std(ddof=1)) if diff.size >= 2 else np.nan
+    cohen_d_paired = mean_diff / sd if sd and sd > 0 else np.nan
+
+    # If all diffs are 0, p=1 by definition
+    if np.allclose(diff, 0):
+        return {"n": len(common), "p": 1.0, "stat": 0.0,
+                "mean_diff": mean_diff, "median_diff": median_diff, "cohen_d": cohen_d_paired}
+    res = stats.wilcoxon(x_reason, x_non, alternative="less", zero_method="wilcox")
+    return float(res.pvalue)
+
+
 def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True):
     plt.rcParams.update({
         "font.size": 11,
@@ -258,6 +288,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             file_to_metrics[key] = {}
             idx_to_results = {}
             retained_ids = retained_ids_list[i]
+            idx_to_entropy = {}
             with open(file_name, "r") as f:
                 for line in f:
                     item = json.loads(line)
@@ -276,6 +307,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
                 for i in ["1", "2", "3"]:
                     distribution.append(results_counter.get(i, 0) / len(results))
                 entropy_value = entropy(np.array(distribution))
+                idx_to_entropy[idx] = entropy_value
                 entropy_list.append(entropy_value)
 
             mean = np.mean(entropy_list)
@@ -285,11 +317,13 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
             file_to_metrics[key]["entropy_list"] = entropy_list
+            file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
         else:
             file_to_metrics[key] = {}
             retained_ids = retained_ids_list[i]
             entropy_list = []
+            idx_to_entropy = {}
             with open(file_name, "r") as f:
                 for line in f:
                     item = json.loads(line)
@@ -301,7 +335,9 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
                     total_count = sum(answer_counts.values())
                     for answer, count in answer_counts.items():
                         distribution.append(count / total_count)
-                    entropy_list.append(entropy(np.array(distribution)))
+                    entropy_value = entropy(np.array(distribution))
+                    idx_to_entropy[idx] = entropy_value
+                    entropy_list.append(entropy_value)
 
             mean = np.mean(entropy_list)
             n = len(entropy_list)
@@ -310,6 +346,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
             file_to_metrics[key]["entropy_list"] = entropy_list
+            file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
         print(key)
         print(f"retained_ids: {len(retained_ids)}")
