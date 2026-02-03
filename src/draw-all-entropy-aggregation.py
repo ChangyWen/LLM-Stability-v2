@@ -83,6 +83,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             file_to_metrics[key] = {}
             idx_to_results = {}
             retained_ids = retained_ids_list[i]
+            idx_to_entropy = {}
             with open(file_name, "r") as f:
                 for line in f:
                     item = json.loads(line)
@@ -101,6 +102,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
                 for i in ["1", "2", "3"]:
                     distribution.append(results_counter.get(i, 0) / len(results))
                 entropy_value = entropy(np.array(distribution))
+                idx_to_entropy[idx] = entropy_value
                 entropy_list.append(entropy_value)
 
             mean = np.mean(entropy_list)
@@ -110,11 +112,13 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
             file_to_metrics[key]["entropy_list"] = entropy_list
+            file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
         else:
             file_to_metrics[key] = {}
             retained_ids = retained_ids_list[i]
             entropy_list = []
+            idx_to_entropy = {}
             with open(file_name, "r") as f:
                 for line in f:
                     item = json.loads(line)
@@ -126,7 +130,9 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
                     total_count = sum(answer_counts.values())
                     for answer, count in answer_counts.items():
                         distribution.append(count / total_count)
-                    entropy_list.append(entropy(np.array(distribution)))
+                    entropy_value = entropy(np.array(distribution))
+                    idx_to_entropy[idx] = entropy_value
+                    entropy_list.append(entropy_value)
 
             mean = np.mean(entropy_list)
             n = len(entropy_list)
@@ -135,6 +141,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
             file_to_metrics[key]["entropy_list"] = entropy_list
+            file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
         print(key)
         print(f"retained_ids: {len(retained_ids)}")
@@ -291,6 +298,7 @@ if __name__ == "__main__":
     ]
 
     model_to_entropy_list = defaultdict(list)
+    model_to_idx_to_entropy = defaultdict(dict)
 
     for dataset_name in datasets:
         subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
@@ -353,9 +361,9 @@ if __name__ == "__main__":
             dataset_name=dataset_name,
         )
         for key in file_to_metrics:
-            new_key = key.replace("_counts.jsonl", "").replace(".jsonl", "")
-            new_key = new_key.split("/")[-1]
-            model_to_entropy_list[new_key] += file_to_metrics[key]["entropy_list"]
+            model_to_entropy_list[key] += file_to_metrics[key]["entropy_list"]
+            # update the dict model_to_idx_to_entropy for the key
+            model_to_idx_to_entropy[key].update(file_to_metrics[key]["idx_to_entropy"])
 
     model_to_metrics = {}
     for model in model_to_entropy_list:
@@ -366,6 +374,7 @@ if __name__ == "__main__":
         model_to_metrics[model] = {
             "avg": mean,
             "ci": ci,
+            "idx_to_entropy": model_to_idx_to_entropy[model],
         }
 
     draw_aggregated_entropy_bars(

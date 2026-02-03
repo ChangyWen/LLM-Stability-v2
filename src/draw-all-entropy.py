@@ -66,32 +66,39 @@ def p_to_stars(p):
 
 def paired_entropy_test_one_sided(file_to_metrics, model_base):
     """
-    Test H1: entropy(reasoning) < entropy(non-reasoning)
-    Paired over common idx.
-    Requires file_to_metrics[key]["idx_to_entropy"] to exist for both conditions.
+    One-sided paired Wilcoxon test:
+    H1: entropy(with reasoning) < entropy(without reasoning)
+    Returns p-value (float).
     """
-    k_non = f"{model_base}-Disable"   # non-reasoning
-    k_reason = f"{model_base}"       # reasoning
+    k_non = f"{model_base}-Disable"
+    k_reason = f"{model_base}"
 
     a = file_to_metrics[k_non]["idx_to_entropy"]
     b = file_to_metrics[k_reason]["idx_to_entropy"]
 
     common = sorted(set(a.keys()) & set(b.keys()))
+    if len(common) == 0:
+        return float("nan")
+
     x_non = np.array([a[i] for i in common], dtype=float)
     x_reason = np.array([b[i] for i in common], dtype=float)
 
-    diff = x_reason - x_non   # want diff < 0
-    mean_diff = float(diff.mean())
-    median_diff = float(np.median(diff))
-    sd = float(diff.std(ddof=1)) if diff.size >= 2 else np.nan
-    cohen_d_paired = mean_diff / sd if sd and sd > 0 else np.nan
-
-    # If all diffs are 0, p=1 by definition
+    diff = x_reason - x_non  # want diff < 0
     if np.allclose(diff, 0):
-        return {"n": len(common), "p": 1.0, "stat": 0.0,
-                "mean_diff": mean_diff, "median_diff": median_diff, "cohen_d": cohen_d_paired}
+        return 1.0
+
     res = stats.wilcoxon(x_reason, x_non, alternative="less", zero_method="wilcox")
     return float(res.pvalue)
+
+
+def add_sig_bracket(ax, x1, x2, y, h, text, fontsize=11):
+    # bracket line
+    ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y],
+            lw=1.0, c="black", clip_on=False)
+    # stars
+    ax.text((x1 + x2) / 2, y + h, text,
+            ha="center", va="bottom", fontsize=fontsize, fontweight="bold",
+            color="black", clip_on=False)
 
 
 def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True):
@@ -172,9 +179,27 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
         ax.text(center, lower - 0.025, f"{lower:.3f}",
                 ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
-    # Remove ALL xtick labels (no sublabels, no group labels)
-    ax.set_xticks([])
-    ax.set_xticklabels([])
+    # ---------- p-values as x-tick labels (at pair centers) ----------
+    # one-sided paired Wilcoxon: H_with < H_without
+    pvals = [paired_entropy_test_one_sided(file_to_metrics, m) for m in model_labels]
+    p_texts = [p_to_stars(p) for p in pvals]
+
+    # pair centers (center between the two bars in each model)
+    pair_centers = []
+    for j in range(len(model_labels)):
+        left_bar = bars[2 * j]
+        right_bar = bars[2 * j + 1]
+        c1 = left_bar.get_x() + left_bar.get_width() / 2
+        c2 = right_bar.get_x() + right_bar.get_width() / 2
+        pair_centers.append((c1 + c2) / 2)
+
+    if show_xlabel:
+        ax.set_xticks(pair_centers)
+        ax.set_xticklabels(p_texts, fontsize=15)
+        ax.tick_params(axis="x", length=0, pad=6)  # length=0 removes tick marks
+    else:
+        ax.set_xticks([])
+        ax.set_xticklabels([])
 
     # no per-axes labels (you want shared labels only)
     ax.set_xlabel("")
@@ -211,7 +236,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
             ax=ax,
             file_to_metrics=metrics_by_dataset[dataset_name],
             dataset_name=dataset_name,
-            show_xlabel=(r == 1),
+            show_xlabel=True,
             show_ylabel=(c == 0),
         )
 
@@ -240,7 +265,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
         loc="lower center",
         ncol=4,                  # adjust to taste (e.g., 4 or 5)
         frameon=False,
-        bbox_to_anchor=(0.5, 0.01),
+        bbox_to_anchor=(0.53, 0.01),
         fontsize=12,
         handlelength=1.6,
         columnspacing=1.6,
@@ -428,5 +453,12 @@ if __name__ == "__main__":
             dataset_name=dataset_name,
         )
         metrics_by_dataset[dataset_name] = file_to_metrics
+
+    for dataset in datasets:
+        print(f"Dataset: {dataset}")
+        for m in ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]:
+            p = paired_entropy_test_one_sided(metrics_by_dataset[dataset], m)
+            print(f"{dataset} {m}: {p:.8f}")
+        print("-" * 100)
 
     plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png")
