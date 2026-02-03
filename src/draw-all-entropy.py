@@ -48,6 +48,22 @@ def get_retained_keys(result_files, dataset_name):
         return set.intersection(*retained_ids_list)
 
 
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+
 def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True):
     plt.rcParams.update({
         "font.size": 11,
@@ -268,6 +284,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
+            file_to_metrics[key]["entropy_list"] = entropy_list
 
         else:
             file_to_metrics[key] = {}
@@ -292,6 +309,7 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
             ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
             file_to_metrics[key]["avg"] = mean
             file_to_metrics[key]["ci"] = ci
+            file_to_metrics[key]["entropy_list"] = entropy_list
 
         print(key)
         print(f"retained_ids: {len(retained_ids)}")
