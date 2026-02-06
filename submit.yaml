@@ -26,8 +26,8 @@ code:
 target:
   service: sing
   # name: Ranking
-  name: Feeds
-  # name: msrresrchvc
+  # name: Feeds
+  name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -40,9 +40,9 @@ storage:
 jobs:
 - name: llm-stability
   # sku: G8-H100
-  sku: G8-A100
-  sla_tier: Standard
-  # sla_tier: Premium
+  sku: G4-A100
+  # sla_tier: Standard
+  sla_tier: Premium
   command:
     ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
@@ -61,6 +61,18 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
     # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.6
     # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.6 --disable_thinking
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.3
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.3 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.3_n50
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.3_n50_dt
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.9
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.9 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.9_n50
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.9_n50_dt
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 1.2
+    # - python src/medmcqa/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 1.2 --disable_thinking
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50
+    # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50_dt
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
     # - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp0.6_n50
@@ -97,9 +109,9 @@ jobs:
     # - python src/daily_dilemmas/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.6 --disable_thinking
     # - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
     # - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
-    - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.9_n50_dt
-    - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50
-    - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50_dt
+    # - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.9_n50_dt
+    # - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50
+    # - python src/daily_dilemmas/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp1.2_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp0.6_n50
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt
     # - python src/daily_dilemmas/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50
