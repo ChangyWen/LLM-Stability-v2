@@ -12,6 +12,7 @@ import time
 from uuid import uuid4
 import re
 import sys
+import torch
 
 
 PROMPT = """
@@ -107,6 +108,12 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, required=False, default=0.6)
     parser.add_argument("--file_name", type=str, required=True)
     args = parser.parse_args()
+
+    # check how many GPUs are available
+    print(f"Available GPUs: {torch.cuda.device_count()}")
+    # set tensor parallel size to the number of available GPUs
+    args.tensor_parallel_size = torch.cuda.device_count()
+    print(f"Setting tensor parallel size to: {args.tensor_parallel_size}")
 
     file_name = args.file_name + ".jsonl"
     all_files = os.listdir("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/mmlu-accounting")
