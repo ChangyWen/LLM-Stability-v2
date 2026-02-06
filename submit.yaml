@@ -7,7 +7,7 @@ environment:
     - pip install packaging
     - pip install ninja
     - pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.0.post2/flash_attn-2.8.0.post2+cu12torch2.5cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-    - pip install vllm
+    - pip install https://github.com/vllm-project/vllm/releases/download/v0.12.0/vllm-0.12.0-cp38-abi3-manylinux_2_31_x86_64.whl
     - pip install onnxruntime-gpu
     - pip install datasets
     - pip install transformers
@@ -182,35 +182,6 @@ jobs:
     # - python src/mmlu-accounting/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
     # - python src/mmlu-accounting/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50
     # - python src/mmlu-accounting/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50_dt
-    ########### moralchoice ###########
-    # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
-    # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
-    # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6
-    # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
-    # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.6
-    # - python src/moralchoice/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.6 --disable_thinking
-    # - python src/moralchoice/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1
-    # - python src/moralchoice/run-vllm.py --model_name ByteDance-Seed/Seed-OSS-36B-Instruct --temperature 1.1 --disable_thinking
-    # - python src/moralchoice/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.6
-    # - python src/moralchoice/run-vllm.py --model_name LGAI-EXAONE/EXAONE-4.0.1-32B --temperature 0.6 --disable_thinking
-    # - python src/moralchoice/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.6
-    # - python src/moralchoice/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-9B-v2 --temperature 0.6 --disable_thinking
-    # - python src/moralchoice/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
-    # - python src/moralchoice/get-results.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
-    # - python src/moralchoice/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.6
-    # - python src/moralchoice/run-vllm.py --model_name nvidia/NVIDIA-Nemotron-Nano-12B-v2 --temperature 0.6 --disable_thinking
-    # - python src/moralchoice/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
-    # - python src/moralchoice/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
-    # - python src/moralchoice/get-results.py --file_name Qwen3-4B_temp0.6_n50
-    # - python src/moralchoice/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt
-    # - python src/moralchoice/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50
-    # - python src/moralchoice/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
-    # - python src/moralchoice/get-results.py --file_name Qwen3-32B_temp0.6_n50
-    # - python src/moralchoice/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt
-    # - python src/moralchoice/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
-    # - python src/moralchoice/get-results.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
-    # - python src/moralchoice/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50
-    # - python src/moralchoice/get-results.py --file_name EXAONE-4.0.1-32B_temp0.6_n50_dt
     ########### temperature experiments (daily_dilemmas) ###########
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.3
     # - python src/daily_dilemmas/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.3 --disable_thinking
@@ -409,6 +380,55 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.9_n50_dt
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50_dt
+    ########### temperature experiments (mmlu-accounting) ###########
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.0
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.0 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.3
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.3 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.9
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.9 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 1.2
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 1.2 --disable_thinking
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.0_n1
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.0_n1_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.3_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.3_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.9_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp0.9_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp1.2_n05
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-4B_temp1.2_n50_dt
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.0
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.0 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.3 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.9 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-30B-A3B --temperature 1.2 --disable_thinking
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.0_n1
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.0_n1_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.3_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp0.9_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-30B-A3B_temp1.2_n50_dt
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.0
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.0 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.3 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 0.9 --disable_thinking
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2
+    # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-32B --temperature 1.2 --disable_thinking
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.0_n1
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.0_n1_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.3_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.3_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.9_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp0.9_n50_dt
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp1.2_n50
+    # - python src/mmlu-accounting/get-results.py --file_name Qwen3-32B_temp1.2_n50_dt
     ########### ablation studies (medmcqa) ###########
     # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-4B --temperature 0.6 --disable_thinking
     # - python src/medmcqa/get-results.py --file_name Qwen3-4B_temp0.6_n50_dt_step1
