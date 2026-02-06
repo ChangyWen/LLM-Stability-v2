@@ -49,6 +49,49 @@ def get_retained_keys(result_files, dataset_name):
         return set.intersection(*retained_ids_list)
 
 
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+
+def paired_entropy_test_one_sided(file_to_metrics, model_base):
+    """
+    One-sided paired Wilcoxon test:
+    H1: entropy(with reasoning) < entropy(without reasoning)
+    Returns p-value (float).
+    """
+    k_non = f"{model_base}-Disable"
+    k_reason = f"{model_base}"
+
+    a = file_to_metrics[k_non]["idx_to_entropy"]
+    b = file_to_metrics[k_reason]["idx_to_entropy"]
+
+    common = sorted(set(a.keys()) & set(b.keys()))
+    if len(common) == 0:
+        return float("nan")
+
+    x_non = np.array([a[i] for i in common], dtype=float)
+    x_reason = np.array([b[i] for i in common], dtype=float)
+
+    diff = x_reason - x_non  # want diff < 0
+    if np.allclose(diff, 0):
+        return 1.0
+
+    res = stats.wilcoxon(x_reason, x_non, alternative="less", zero_method="wilcox")
+    return float(res.pvalue)
+
+
 def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
     file_to_metrics = {}
     for i, file_name in enumerate(result_files):
@@ -238,9 +281,25 @@ def draw_aggregated_entropy_bars(
                 ha="center", va="top", fontsize=8, color="black", fontweight="bold")
 
     # --- axes cosmetics (match your per-dataset style) ---
-    ax.set_xticks([])
-    ax.set_xticklabels([])
-    ax.set_xlabel("")
+    # ---------- significance stars as x-axis labels (per model pair) ----------
+    # one-sided paired Wilcoxon: H_with < H_without
+    pvals = [paired_entropy_test_one_sided(model_to_metrics, m) for m in model_labels]
+    star_labels = [p_to_stars(p) for p in pvals]  # "", "*", "**", "***"
+
+    # pair centers (between the two bars of each model)
+    pair_centers = []
+    for j in range(len(model_labels)):
+        left_bar = bars[2 * j]
+        right_bar = bars[2 * j + 1]
+        c1 = left_bar.get_x() + left_bar.get_width() / 2
+        c2 = right_bar.get_x() + right_bar.get_width() / 2
+        pair_centers.append((c1 + c2) / 2)
+
+    ax.set_xticks(pair_centers)
+    ax.set_xticklabels(star_labels, fontsize=13, fontweight="bold")
+    ax.tick_params(axis="x", length=0, pad=8)  # no tick marks; adjust pad if needed
+    ax.set_xlabel("")  # keep empty; stars are the annotation
+
     ax.set_ylabel("")  # shared ylabel via fig.supylabel
     ax.set_title(title, pad=10, weight="bold")
 
@@ -363,7 +422,8 @@ if __name__ == "__main__":
         for key in file_to_metrics:
             model_to_entropy_list[key] += file_to_metrics[key]["entropy_list"]
             # update the dict model_to_idx_to_entropy for the key
-            model_to_idx_to_entropy[key].update(file_to_metrics[key]["idx_to_entropy"])
+            for _idx, _e in file_to_metrics[key]["idx_to_entropy"].items():
+                model_to_idx_to_entropy[key][f"{dataset_name}::{_idx}"] = _e
 
     model_to_metrics = {}
     for model in model_to_entropy_list:
