@@ -10,6 +10,7 @@ from typing import Optional, List
 import re
 import time
 from uuid import uuid4
+import torch
 
 
 def get_prompt(raw_prompt, tokenizer, model_name, disable_thinking, thinking_budget):
@@ -154,6 +155,12 @@ if __name__ == "__main__":
     parser.add_argument("--thinking_budget", type=int, required=False, default=None)
     parser.add_argument("--repeated_times", type=int, required=False, default=50)
     args = parser.parse_args()
+
+    # check how many GPUs are available
+    print(f"Available GPUs: {torch.cuda.device_count()}")
+    # set tensor parallel size to the number of available GPUs
+    args.tensor_parallel_size = torch.cuda.device_count()
+    print(f"Setting tensor parallel size to: {args.tensor_parallel_size}")
 
     llm = LLM(
         model=args.model_name,
