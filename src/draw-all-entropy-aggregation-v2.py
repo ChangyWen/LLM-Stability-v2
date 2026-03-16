@@ -8,7 +8,7 @@ from scipy import stats
 import seaborn as sns
 import matplotlib.patches as mpatches
 from collections import defaultdict
-
+import os
 
 def get_retained_keys(result_files, dataset_name):
     if dataset_name == "daily_dilemmas":
@@ -48,7 +48,6 @@ def get_retained_keys(result_files, dataset_name):
                 retained_ids_list.append(idx_set)
         return set.intersection(*retained_ids_list)
 
-
 def p_to_stars(p):
     """
     Convert p-value to significance stars.
@@ -62,27 +61,20 @@ def p_to_stars(p):
     elif p < 0.05:
         return "*"
     else:
-        return ""
+        return "ns"
 
-
-def paired_entropy_test_one_sided(file_to_metrics, model_base):
+def paired_entropy_test_one_sided_category(dict_non, dict_reason):
     """
-    One-sided paired Wilcoxon test:
+    One-sided paired Wilcoxon test for categories:
     H1: entropy(with reasoning) < entropy(without reasoning)
     Returns p-value (float).
     """
-    k_non = f"{model_base}-Disable"
-    k_reason = f"{model_base}"
-
-    a = file_to_metrics[k_non]["idx_to_entropy"]
-    b = file_to_metrics[k_reason]["idx_to_entropy"]
-
-    common = sorted(set(a.keys()) & set(b.keys()))
+    common = sorted(set(dict_non.keys()) & set(dict_reason.keys()))
     if len(common) == 0:
         return float("nan")
 
-    x_non = np.array([a[i] for i in common], dtype=float)
-    x_reason = np.array([b[i] for i in common], dtype=float)
+    x_non = np.array([dict_non[i] for i in common], dtype=float)
+    x_reason = np.array([dict_reason[i] for i in common], dtype=float)
 
     diff = x_reason - x_non  # want diff < 0
     if np.allclose(diff, 0):
@@ -90,7 +82,6 @@ def paired_entropy_test_one_sided(file_to_metrics, model_base):
 
     res = stats.wilcoxon(x_reason, x_non, alternative="less", zero_method="wilcox")
     return float(res.pvalue)
-
 
 def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
     file_to_metrics = {}
@@ -142,18 +133,12 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
                 results = idx_to_results[idx]
                 results_counter = dict(Counter(results))
                 distribution = []
-                for i in ["1", "2", "3"]:
-                    distribution.append(results_counter.get(i, 0) / len(results))
+                for j in ["1", "2", "3"]:
+                    distribution.append(results_counter.get(j, 0) / len(results))
                 entropy_value = entropy(np.array(distribution))
                 idx_to_entropy[idx] = entropy_value
                 entropy_list.append(entropy_value)
 
-            mean = np.mean(entropy_list)
-            n = len(entropy_list)
-            sem = stats.sem(entropy_list)
-            ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
-            file_to_metrics[key]["avg"] = mean
-            file_to_metrics[key]["ci"] = ci
             file_to_metrics[key]["entropy_list"] = entropy_list
             file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
@@ -177,170 +162,122 @@ def compute_file_to_metrics(result_files, retained_ids_list, dataset_name):
                     idx_to_entropy[idx] = entropy_value
                     entropy_list.append(entropy_value)
 
-            mean = np.mean(entropy_list)
-            n = len(entropy_list)
-            sem = stats.sem(entropy_list)
-            ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
-            file_to_metrics[key]["avg"] = mean
-            file_to_metrics[key]["ci"] = ci
             file_to_metrics[key]["entropy_list"] = entropy_list
             file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
-        print(key)
-        print(f"retained_ids: {len(retained_ids)}")
-        print("avg:", f"{file_to_metrics[key]['avg']:.4f}")
-        print("ci:", f"{file_to_metrics[key]['ci'][0]:.4f} - {file_to_metrics[key]['ci'][1]:.4f}")
-        print("-" * 100)
-
     return file_to_metrics
 
-
-def draw_aggregated_entropy_bars(
-    model_to_metrics: dict,
-    save_file: str = "figures/entropy-aggregated.png",
-    title: str = "Aggregated (All Datasets)"
+def draw_type_aggregated_entropy_bars(
+    category_to_metrics: dict,
+    save_file: str = "figures/entropy-type-aggregated.png",
+    title: str = "Ethical vs. Professional"
 ):
-    # --- consistent global styling (same as your per-dataset plot) ---
+    # --- consistent global styling ---
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
         "axes.labelsize": 11,
-        "xtick.labelsize": 10,
+        "xtick.labelsize": 11,
         "ytick.labelsize": 10,
         "axes.edgecolor": "gray",
         "axes.linewidth": 0.8,
-        # "text.usetex": True,
     })
 
-    fig, ax = plt.subplots(1, 1, figsize=(9, 4.8), dpi=1024)
+    # Narrower figure width because we only have 2 categories (4 bars total)
+    fig, ax = plt.subplots(1, 1, figsize=(5, 4.8), dpi=1024)
 
-    # Order must match your previous plotting logic
-    keys = [
-        "Qwen3-4B-Disable", "Qwen3-4B",
-        "Qwen3-32B-Disable", "Qwen3-32B",
-        "Qwen3-30B-A3B-Disable", "Qwen3-30B-A3B",
-        "Seed-36B-Disable", "Seed-36B",
-        "Nemotron-9B-Disable", "Nemotron-9B",
-        "Nemotron-12B-Disable", "Nemotron-12B",
-    ]
+    categories = ["Ethical", "Professional"]
 
-    # Model labels used for color mapping (same palette rule)
-    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
-
-    # --- x positions (same intra/inter gap layout) ---
-    n_models = len(model_labels)
-    intra_gap = 1.1
-    inter_gap = 1.6
-    x = []
-    pos = 0.0
-    for _ in range(n_models):
-        x.append(pos)
-        x.append(pos + intra_gap)
-        pos += (inter_gap + intra_gap)
-    x = np.array(x)
+    # --- ADJUSTED SPACING ---
+    intra_gap = 1.2  # Increased from 1.0 to create a gap between Disable/Reasoning
+    inter_gap = 2.0  # Gap between Ethical/Professional
     bar_width = 1.0
 
-    # --- same color set ---
-    palette = sns.color_palette("Set2", len(model_labels))
-    model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
+    x_ticks = []
+    pos = 0.0
 
-    def key_to_model(k: str) -> str:
-        return k.replace("-Disable", "")
+    for cat in categories:
+        # 1. Disable Bar
+        mean_d = category_to_metrics[cat]["Disable"]["avg"]
+        ci_d = category_to_metrics[cat]["Disable"]["ci"]
+        yerr_d = ci_d[1] - mean_d
 
-    # --- pull metrics + draw bars ---
-    avg = [model_to_metrics[k]["avg"] for k in keys]
-    ci = [model_to_metrics[k]["ci"] for k in keys]
-    yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
-
-    bars = []
-    for i, (mean, err, key) in enumerate(zip(avg, yerr, keys)):
-        model = key_to_model(key)
-        color = model_to_color[model]
-
-        is_non_reasoning = ("Disable" in key)
-        hatch = None if is_non_reasoning else "//"
-
-        bar = ax.bar(
-            x[i], mean, bar_width,
-            yerr=err, capsize=5,
-            color=color,
-            edgecolor="black",
-            linewidth=0.6,
-            alpha=1.0,
-            hatch=hatch
+        bar_d = ax.bar(
+            pos, mean_d, bar_width,
+            yerr=yerr_d, capsize=5,
+            color="white", edgecolor="black", linewidth=0.8
         )
-        bars.append(bar[0])
 
-    # --- CI labels (same style) ---
-    for i, bar in enumerate(bars):
-        lower, upper = ci[i]
-        center = bar.get_x() + bar.get_width() / 2
-        ax.text(center, upper + 0.015, f"{upper:.3f}",
-                ha="center", va="bottom", fontsize=8, color="black", fontweight="bold")
-        ax.text(center, lower - 0.025, f"{lower:.3f}",
-                ha="center", va="top", fontsize=8, color="black", fontweight="bold")
+        # 2. Reasoning Bar
+        mean_r = category_to_metrics[cat]["Reasoning"]["avg"]
+        ci_r = category_to_metrics[cat]["Reasoning"]["ci"]
+        yerr_r = ci_r[1] - mean_r
 
-    # --- axes cosmetics (match your per-dataset style) ---
-    # ---------- significance stars as x-axis labels (per model pair) ----------
-    # one-sided paired Wilcoxon: H_with < H_without
-    pvals = [paired_entropy_test_one_sided(model_to_metrics, m) for m in model_labels]
-    star_labels = [p_to_stars(p) for p in pvals]  # "", "*", "**", "***"
+        bar_r = ax.bar(
+            pos + intra_gap, mean_r, bar_width,
+            yerr=yerr_r, capsize=5,
+            color="white", edgecolor="black", linewidth=0.8, hatch="//"
+        )
 
-    # pair centers (between the two bars of each model)
-    pair_centers = []
-    for j in range(len(model_labels)):
-        left_bar = bars[2 * j]
-        right_bar = bars[2 * j + 1]
-        c1 = left_bar.get_x() + left_bar.get_width() / 2
-        c2 = right_bar.get_x() + right_bar.get_width() / 2
-        pair_centers.append((c1 + c2) / 2)
+        center = pos + intra_gap / 2
+        x_ticks.append(center)
 
-    ax.set_xticks(pair_centers)
-    ax.set_xticklabels(star_labels, fontsize=13, fontweight="bold")
-    ax.tick_params(axis="x", length=0, pad=8)  # no tick marks; adjust pad if needed
-    ax.set_xlabel("")  # keep empty; stars are the annotation
+        # --- CI labels ---
+        ax.text(pos, ci_d[1] + 0.015, f"{ci_d[1]:.3f}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+        ax.text(pos, ci_d[0] - 0.025, f"{ci_d[0]:.3f}", ha="center", va="top", fontsize=8, fontweight="bold")
 
-    ax.set_ylabel("")  # shared ylabel via fig.supylabel
+        ax.text(pos + intra_gap, ci_r[1] + 0.015, f"{ci_r[1]:.3f}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+        ax.text(pos + intra_gap, ci_r[0] - 0.025, f"{ci_r[0]:.3f}", ha="center", va="top", fontsize=8, fontweight="bold")
+
+        # --- Significance Stars & Bracket ---
+        p_val = paired_entropy_test_one_sided_category(
+            category_to_metrics[cat]["Disable"]["idx_to_entropy"],
+            category_to_metrics[cat]["Reasoning"]["idx_to_entropy"]
+        )
+        stars = p_to_stars(p_val)
+
+        max_y = max(ci_d[1], ci_r[1]) + 0.06
+        # Draw bracket (automatically aligns with the new intra_gap)
+        ax.plot([pos, pos, pos+intra_gap, pos+intra_gap], [max_y, max_y+0.01, max_y+0.01, max_y], lw=1.0, c='k')
+        # Draw stars
+        ax.text(center, max_y + 0.015, stars, ha='center', va='bottom', color='k', fontsize=12, fontweight='bold')
+
+        pos += (inter_gap + intra_gap)
+
+    # --- axes cosmetics ---
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(categories, fontsize=12, fontweight="bold")
+    ax.set_xlabel("")
+
     ax.set_title(title, pad=10, weight="bold")
-
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    # --- shared ylabel (same text) ---
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.04)
 
-    # --- same legend structure ---
-    legend_model_labels = [
-        "Qwen3-4B",
-        "Qwen3-32B",
-        "Qwen3-30B-A3B",
-        "Seed-OSS-36B-Instruct",
-        "NVIDIA-Nemotron-Nano-9B-v2",
-        "NVIDIA-Nemotron-Nano-12B-v2",
-    ]
-    model_handles = [
-        mpatches.Patch(facecolor=palette[i], edgecolor="black", label=legend_model_labels[i])
-        for i in range(len(legend_model_labels))
-    ]
+    # --- Legend ---
     style_handles = [
         mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
         mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
     ]
-    handles = model_handles + style_handles
 
     fig.legend(
-        handles=handles,
+        handles=style_handles,
         loc="lower center",
-        ncol=4,
+        ncol=2,
         frameon=False,
         bbox_to_anchor=(0.54, 0.01),
-        fontsize=10,
+        fontsize=11,
         handlelength=1.6,
-        columnspacing=1.6,
+        columnspacing=2.0,
         handletextpad=0.5,
     )
+
+    # Ensure the figure directory exists
+    import os
+    os.makedirs(os.path.dirname(save_file), exist_ok=True)
 
     plt.tight_layout(rect=[0.05, 0.10, 1.0, 1.0])
     plt.savefig(save_file, bbox_inches="tight")
@@ -356,38 +293,53 @@ if __name__ == "__main__":
         "mmlu-law",
     ]
 
-    model_to_entropy_list = defaultdict(list)
-    model_to_idx_to_entropy = defaultdict(dict)
+    # New Dictionary Structure
+    category_to_entropy = {
+        "Ethical": {"Disable": [], "Reasoning": []},
+        "Professional": {"Disable": [], "Reasoning": []}
+    }
+    category_to_idx_to_entropy = {
+        "Ethical": {"Disable": {}, "Reasoning": {}},
+        "Professional": {"Disable": {}, "Reasoning": {}}
+    }
 
     for dataset_name in datasets:
+        # 1. Map dataset to category
+        category = "Ethical" if dataset_name == "daily_dilemmas" else "Professional"
         subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
 
         retained_ids_list = []
+        # Qwen3-4B
         retained_ids = get_retained_keys([
             f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50{subfix}.jsonl",
         ], dataset_name)
         retained_ids_list += [retained_ids] * 2
+        # Qwen3-32B
         retained_ids = get_retained_keys([
             f"outputs/{dataset_name}/processed_results/Qwen3-32B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-32B_temp0.6_n50{subfix}.jsonl",
         ], dataset_name)
         retained_ids_list += [retained_ids] * 2
+        # Qwen3-30B-A3B
         retained_ids = get_retained_keys([
             f"outputs/{dataset_name}/processed_results/Qwen3-30B-A3B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-30B-A3B_temp0.6_n50{subfix}.jsonl",
         ], dataset_name)
         retained_ids_list += [retained_ids] * 2
+        # Seed-OSS-36B
         retained_ids = get_retained_keys([
             f"outputs/{dataset_name}/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50{subfix}.jsonl",
         ], dataset_name)
         retained_ids_list += [retained_ids] * 2
+        # Nemotron-9B
         retained_ids = get_retained_keys([
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50{subfix}.jsonl",
         ], dataset_name)
         retained_ids_list += [retained_ids] * 2
+        # Nemotron-12B
         retained_ids = get_retained_keys([
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50{subfix}.jsonl",
@@ -397,19 +349,14 @@ if __name__ == "__main__":
         result_files = [
             f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50{subfix}.jsonl",
-
             f"outputs/{dataset_name}/processed_results/Qwen3-32B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-32B_temp0.6_n50{subfix}.jsonl",
-
             f"outputs/{dataset_name}/processed_results/Qwen3-30B-A3B_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Qwen3-30B-A3B_temp0.6_n50{subfix}.jsonl",
-
             f"outputs/{dataset_name}/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50{subfix}.jsonl",
-
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50{subfix}.jsonl",
-
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt{subfix}.jsonl",
             f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50{subfix}.jsonl",
         ]
@@ -419,26 +366,40 @@ if __name__ == "__main__":
             retained_ids_list=retained_ids_list,
             dataset_name=dataset_name,
         )
+
         for key in file_to_metrics:
-            model_to_entropy_list[key] += file_to_metrics[key]["entropy_list"]
-            # update the dict model_to_idx_to_entropy for the key
+            is_disable = "Disable" in key
+            mode = "Disable" if is_disable else "Reasoning"
+            base_model = key.replace("-Disable", "")
+
+            # Append the raw entropies to the pooled lists
+            category_to_entropy[category][mode].extend(file_to_metrics[key]["entropy_list"])
+
+            # Save idx-level entropy to calculate significance properly across all pooled answers
             for _idx, _e in file_to_metrics[key]["idx_to_entropy"].items():
-                model_to_idx_to_entropy[key][f"{dataset_name}::{_idx}"] = _e
+                unique_id = f"{base_model}::{dataset_name}::{_idx}"
+                category_to_idx_to_entropy[category][mode][unique_id] = _e
 
-    model_to_metrics = {}
-    for model in model_to_entropy_list:
-        mean = np.mean(model_to_entropy_list[model])
-        n = len(model_to_entropy_list[model])
-        sem = stats.sem(model_to_entropy_list[model])
-        ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
-        model_to_metrics[model] = {
-            "avg": mean,
-            "ci": ci,
-            "idx_to_entropy": model_to_idx_to_entropy[model],
-        }
+    # 3. Calculate Means and Confidence Intervals
+    category_to_metrics = {}
+    for cat in ["Ethical", "Professional"]:
+        category_to_metrics[cat] = {}
+        for mode in ["Disable", "Reasoning"]:
+            lst = category_to_entropy[cat][mode]
+            mean = np.mean(lst)
+            n = len(lst)
+            sem = stats.sem(lst)
+            ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem) if n > 1 else (mean, mean)
 
-    draw_aggregated_entropy_bars(
-        model_to_metrics=model_to_metrics,
-        save_file="figures/entropy-aggregated.png",
-        title="All Datasets"
+            category_to_metrics[cat][mode] = {
+                "avg": mean,
+                "ci": ci,
+                "idx_to_entropy": category_to_idx_to_entropy[cat][mode]
+            }
+
+    # 4. Plot
+    draw_type_aggregated_entropy_bars(
+        category_to_metrics=category_to_metrics,
+        save_file="figures/entropy-type-aggregated.png",
+        title="All Models' Results Aggregated"
     )
