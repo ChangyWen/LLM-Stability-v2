@@ -183,17 +183,17 @@ def draw_type_aggregated_entropy_bars(
         "axes.linewidth": 0.8,
     })
 
-    # Narrower figure width because we only have 2 categories (4 bars total)
+    # Adjusted to be narrower and taller based on previous requests
     fig, ax = plt.subplots(1, 1, figsize=(5, 4.8), dpi=1024)
 
     categories = ["Ethical", "Professional"]
 
-    # --- ADJUSTED SPACING ---
-    intra_gap = 1.2  # Increased from 1.0 to create a gap between Disable/Reasoning
+    intra_gap = 1.2  # Gap between Disable/Reasoning
     inter_gap = 2.0  # Gap between Ethical/Professional
     bar_width = 1.0
 
     x_ticks = []
+    star_labels = []
     pos = 0.0
 
     for cat in categories:
@@ -229,24 +229,25 @@ def draw_type_aggregated_entropy_bars(
         ax.text(pos + intra_gap, ci_r[1] + 0.015, f"{ci_r[1]:.3f}", ha="center", va="bottom", fontsize=8, fontweight="bold")
         ax.text(pos + intra_gap, ci_r[0] - 0.025, f"{ci_r[0]:.3f}", ha="center", va="top", fontsize=8, fontweight="bold")
 
-        # --- Significance Stars & Bracket ---
+        # --- Calculate Significance Stars (No brackets drawn here anymore) ---
         p_val = paired_entropy_test_one_sided_category(
             category_to_metrics[cat]["Disable"]["idx_to_entropy"],
             category_to_metrics[cat]["Reasoning"]["idx_to_entropy"]
         )
         stars = p_to_stars(p_val)
-
-        max_y = max(ci_d[1], ci_r[1]) + 0.06
-        # Draw bracket (automatically aligns with the new intra_gap)
-        ax.plot([pos, pos, pos+intra_gap, pos+intra_gap], [max_y, max_y+0.01, max_y+0.01, max_y], lw=1.0, c='k')
-        # Draw stars
-        ax.text(center, max_y + 0.015, stars, ha='center', va='bottom', color='k', fontsize=12, fontweight='bold')
+        star_labels.append(stars)
 
         pos += (inter_gap + intra_gap)
 
     # --- axes cosmetics ---
     ax.set_xticks(x_ticks)
-    ax.set_xticklabels(categories, fontsize=12, fontweight="bold")
+
+    # Append the stars directly below the category name using a newline
+    tick_labels = [f"{cat}\n{star}" for cat, star in zip(categories, star_labels)]
+    ax.set_xticklabels(tick_labels, fontsize=12, fontweight="bold")
+
+    # Adjust tick params to give the multiline label some breathing room
+    ax.tick_params(axis="x", pad=8)
     ax.set_xlabel("")
 
     ax.set_title(title, pad=10, weight="bold")
@@ -268,7 +269,7 @@ def draw_type_aggregated_entropy_bars(
         loc="lower center",
         ncol=2,
         frameon=False,
-        bbox_to_anchor=(0.54, 0.01),
+        bbox_to_anchor=(0.54, 0.01), # Adjusted slightly lower to account for taller figure/multiline ticks
         fontsize=11,
         handlelength=1.6,
         columnspacing=2.0,
