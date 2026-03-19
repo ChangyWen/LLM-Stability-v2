@@ -278,7 +278,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
             temperatures=temperatures
         )
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 8), dpi=1024)
+    fig, axes = plt.subplots(3, 2, figsize=(14, 12), dpi=1024)
     axes = axes.flatten()
 
     delta_handle = None
@@ -355,10 +355,12 @@ if __name__ == "__main__":
         "Qwen3-32B",
         "Qwen3-30B-A3B",
         "Seed-OSS-36B-Instruct",
+        "NVIDIA-Nemotron-Nano-9B-v2",
+        "NVIDIA-Nemotron-Nano-12B-v2",
     ]
     datasets = [
         "daily_dilemmas",
-        "medmcqa",
+        # "medmcqa",
         # add more if you have them:
         # "mmlu-accounting",
         # "mmlu-law",
