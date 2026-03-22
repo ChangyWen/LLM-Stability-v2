@@ -189,9 +189,9 @@ def compute_file_to_metrics_for_model(dataset_name, model_name, temperatures, ba
 
 
 # --------------------------------------------------------
-# Draw Subplot (Updated with significance stars)
+# Draw Subplot (Updated with shared x-labels and stars as ticks)
 # --------------------------------------------------------
-def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temperatures, model_color):
+def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temperatures, model_color, show_xlabel=True, show_temperature=True):
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 12,
@@ -254,11 +254,11 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
 
     group_positions = np.array([j * (2 + group_gap) + 0.5 for j in range(len(temperatures))], dtype=float)
     ax.set_xticks(group_positions)
-    ax.set_xticklabels([str(t) for t in temperatures])
 
     # ----------------------------------------------------
-    # Calculate and draw Significance Stars
+    # Calculate Significance Stars and set x-tick labels
     # ----------------------------------------------------
+    xtick_labels = []
     for j, t in enumerate(temperatures):
         k_non = f"{model_name}-Disable_temp{t}"
         k_reason = f"{model_name}_temp{t}"
@@ -266,17 +266,18 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
         pval = paired_entropy_test_one_sided(file_to_metrics, k_non, k_reason)
         star = p_to_stars(pval)
 
-        if star:
-            # Place the star slightly above the tallest bar in the pair
-            upper1 = ci[2 * j][1]
-            upper2 = ci[2 * j + 1][1]
-            max_upper = max(upper1, upper2)
+        # Format as requested
+        if show_temperature:
+            xtick_labels.append(f"{t}\n{star}")
+        else:
+            xtick_labels.append(f"{star}")
 
-            ax.text(
-                group_positions[j], max_upper + 0.035, star,
-                ha="center", va="bottom",
-                fontsize=13, color="black", fontweight="bold"
-            )
+    if show_xlabel:
+        ax.set_xticklabels(xtick_labels)
+    else:
+        # Hide labels for the upper rows, but keep ticks for alignment
+        ax.set_xticklabels([])
+        ax.tick_params(axis="x", length=0)
 
     # grid & spines
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
@@ -332,13 +333,22 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
     delta_handle = None
     for i, m in enumerate(model_names):
         ax = axes[i]
+
+        # Only show the x-label (temp + stars) on the bottom row (indices 4 and 5)
+        # show_x = True if i >= 4 else False
+        show_x = True
+        # show_temperature = True if i >= 4 else False
+        show_temperature = True
+
         h = draw_temperature_subplot(
             ax=ax,
             file_to_metrics=model_to_metrics[m],
             dataset_name=dataset_name,
             model_name=m,
             temperatures=temperatures,
-            model_color=model_to_color[m]
+            model_color=model_to_color[m],
+            show_xlabel=show_x,
+            show_temperature=show_temperature
         )
         delta_handle = h
 
