@@ -360,10 +360,9 @@ if __name__ == "__main__":
     ]
     datasets = [
         "daily_dilemmas",
-        # "medmcqa",
-        # add more if you have them:
-        # "mmlu-accounting",
-        # "mmlu-law",
+        "medmcqa",
+        "mmlu-accounting",
+        "mmlu-law",
     ]
     temperatures = ["0.3", "0.6", "0.9", "1.2"]
 
