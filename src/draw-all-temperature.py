@@ -1,4 +1,5 @@
 import json
+import math
 import matplotlib.pyplot as plt
 from collections import Counter
 import numpy as np
@@ -10,7 +11,50 @@ import matplotlib.lines as mlines
 
 
 # ----------------------------
-# retained keys (same as yours)
+# Statistical Functions
+# ----------------------------
+def p_to_stars(p):
+    """Convert p-value to significance stars."""
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+def paired_entropy_test_one_sided(file_to_metrics, k_non, k_reason):
+    """
+    One-sided paired Wilcoxon test:
+    H1: entropy(with reasoning) < entropy(without reasoning)
+    Returns p-value (float).
+    """
+    if k_non not in file_to_metrics or k_reason not in file_to_metrics:
+        return float("nan")
+
+    a = file_to_metrics[k_non]["idx_to_entropy"]
+    b = file_to_metrics[k_reason]["idx_to_entropy"]
+
+    common = sorted(set(a.keys()) & set(b.keys()))
+    if len(common) == 0:
+        return float("nan")
+
+    x_non = np.array([a[i] for i in common], dtype=float)
+    x_reason = np.array([b[i] for i in common], dtype=float)
+
+    diff = x_reason - x_non  # want diff < 0
+    if np.allclose(diff, 0):
+        return 1.0
+
+    res = stats.wilcoxon(x_reason, x_non, alternative="less", zero_method="wilcox")
+    return float(res.pvalue)
+
+
+# ----------------------------
+# Retained Keys Extraction
 # ----------------------------
 def get_retained_keys(result_files, dataset_name):
     if dataset_name == "daily_dilemmas":
@@ -44,7 +88,6 @@ def get_retained_keys(result_files, dataset_name):
                         continue
                     total_count = sum(answer_counts.values())
 
-                    # your special rule for temp0.0
                     if "temp0.0" in file_name:
                         if total_count < 1:
                             continue
@@ -58,13 +101,11 @@ def get_retained_keys(result_files, dataset_name):
 
 
 # --------------------------------------------------------
-# compute metrics for ONE (dataset, model) across temps
-# returns: dict with keys like "<model>-Disable_temp0.3" etc
+# Compute Metrics (Updated to retain idx_to_entropy)
 # --------------------------------------------------------
 def compute_file_to_metrics_for_model(dataset_name, model_name, temperatures, base_dir="outputs"):
     subfix = "_counts" if dataset_name != "daily_dilemmas" else ""
 
-    # build all files (dt = non-reasoning in your naming)
     result_files = []
     for t in temperatures:
         result_files += [
@@ -78,21 +119,17 @@ def compute_file_to_metrics_for_model(dataset_name, model_name, temperatures, ba
     file_to_metrics = {}
 
     for i, file_name in enumerate(result_files):
-        # detect non-reasoning vs reasoning
         is_non_reasoning = ("_dt" in file_name)
-
-        # parse temperature from filename: ".../<model>_temp0.6_n50..."
-        # safer than split("_")[1] if model contains underscores
         fname = file_name.split("/")[-1]
-        # find substring "tempX"
-        temp_part = [p for p in fname.split("_") if p.startswith("temp")][0]  # e.g., "temp0.6"
-        temp_str = temp_part.replace("temp", "")                              # e.g., "0.6"
+        temp_part = [p for p in fname.split("_") if p.startswith("temp")][0]
+        temp_str = temp_part.replace("temp", "")
 
         key = f"{model_name}-Disable_temp{temp_str}" if is_non_reasoning else f"{model_name}_temp{temp_str}"
         file_to_metrics[key] = {}
 
         retained = retained_ids_list[i]
         entropy_list = []
+        idx_to_entropy = {}
 
         if dataset_name == "daily_dilemmas":
             idx_to_results = {}
@@ -113,7 +150,9 @@ def compute_file_to_metrics_for_model(dataset_name, model_name, temperatures, ba
                     cnt.get("2", 0) / len(results),
                     cnt.get("3", 0) / len(results),
                 ])
-                entropy_list.append(entropy(dist))
+                e = entropy(dist)
+                entropy_list.append(e)
+                idx_to_entropy[idx] = e
 
         else:
             with open(file_name, "r") as f:
@@ -129,7 +168,9 @@ def compute_file_to_metrics_for_model(dataset_name, model_name, temperatures, ba
                     if total <= 0:
                         continue
                     dist = np.array([c / total for c in answer_counts.values()])
-                    entropy_list.append(entropy(dist))
+                    e = entropy(dist)
+                    entropy_list.append(e)
+                    idx_to_entropy[idx] = e
 
         entropy_list = np.array(entropy_list, dtype=float)
         mean = float(np.mean(entropy_list))
@@ -142,12 +183,13 @@ def compute_file_to_metrics_for_model(dataset_name, model_name, temperatures, ba
 
         file_to_metrics[key]["avg"] = mean
         file_to_metrics[key]["ci"] = ci
+        file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy  # <-- Essential for paired test
 
     return file_to_metrics
 
 
 # --------------------------------------------------------
-# draw ONE model subplot (bars + twin axis ΔEntropy)
+# Draw Subplot (Updated with significance stars)
 # --------------------------------------------------------
 def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temperatures, model_color):
     plt.rcParams.update({
@@ -160,7 +202,6 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
         "axes.linewidth": 0.8,
     })
 
-    # order: for each temp: Non-R then R
     keys = []
     for t in temperatures:
         keys += [f"{model_name}-Disable_temp{t}", f"{model_name}_temp{t}"]
@@ -170,15 +211,13 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
     ci  = [file_to_metrics[k]["ci"] for k in keys]
     yerr = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
 
-    # ΔEntropy per temp (Non-R − R)
     diffs = []
     for j in range(len(temperatures)):
         non_r = avg[2*j]
         r     = avg[2*j + 1]
         diffs.append(non_r - r)
 
-    # x positions with extra gap between temperatures (group spacing)
-    group_gap = 0.9   # increase this to add more space between temperature groups
+    group_gap = 0.9
     x = []
     for j in range(len(temperatures)):
         base = j * (2 + group_gap)
@@ -187,29 +226,24 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
 
     bar_width = 0.78
 
-    # Bars: non-reasoning = white face; reasoning = hatched
     bars = []
     for i, (mean, err, key) in enumerate(zip(avg, yerr, keys)):
         is_non_reasoning = ("-Disable_" in key)
-
-        # temperature index: every two bars share one temperature
         temp_idx = i // 2
         bar_color = temp_palette[temp_idx]
-
         hatch = None if is_non_reasoning else "//"
 
         b = ax.bar(
             x[i], mean, bar_width,
             yerr=err, capsize=4,
-            color=bar_color,          # 🔴 solid temperature color
-            edgecolor="black",        # clean contrast
+            color=bar_color,
+            edgecolor="black",
             linewidth=1.1,
             hatch=hatch,
             zorder=3
         )
         bars.append(b[0])
 
-    # CI labels
     for i, bar in enumerate(bars):
         lower, upper = ci[i]
         center = bar.get_x() + bar.get_width() / 2
@@ -218,10 +252,31 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
         ax.text(center, lower - 0.010, f"{lower:.3f}", ha="center", va="top",
                 fontsize=7.5, color="black", fontweight="bold")
 
-    # x ticks: show only temperatures at group centers
     group_positions = np.array([j * (2 + group_gap) + 0.5 for j in range(len(temperatures))], dtype=float)
     ax.set_xticks(group_positions)
     ax.set_xticklabels([str(t) for t in temperatures])
+
+    # ----------------------------------------------------
+    # Calculate and draw Significance Stars
+    # ----------------------------------------------------
+    for j, t in enumerate(temperatures):
+        k_non = f"{model_name}-Disable_temp{t}"
+        k_reason = f"{model_name}_temp{t}"
+
+        pval = paired_entropy_test_one_sided(file_to_metrics, k_non, k_reason)
+        star = p_to_stars(pval)
+
+        if star:
+            # Place the star slightly above the tallest bar in the pair
+            upper1 = ci[2 * j][1]
+            upper2 = ci[2 * j + 1][1]
+            max_upper = max(upper1, upper2)
+
+            ax.text(
+                group_positions[j], max_upper + 0.035, star,
+                ha="center", va="bottom",
+                fontsize=13, color="black", fontweight="bold"
+            )
 
     # grid & spines
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
@@ -230,13 +285,10 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
         ax.spines[spine].set_visible(False)
 
     ax.set_title(model_name, pad=8, weight="bold")
-    ax.set_ylabel("")  # shared at figure level
+    ax.set_ylabel("")
 
     # --- Twin axis for ΔEntropy ---
     ax2 = ax.twinx()
-
-    # temperature colors for Δ markers (like your origin: flare palette)
-    # temp_palette = sns.color_palette("flare", len(temperatures))
     group_colors = temp_palette
 
     ax2.plot(group_positions, diffs, color="black", linestyle=":", linewidth=1.5, zorder=4, alpha=0.7)
@@ -244,15 +296,13 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
     for pos, diff, c in zip(group_positions, diffs, group_colors):
         ax2.scatter(pos, diff, color=c, s=45, edgecolor="black", linewidth=0.6, zorder=5, label="_nolegend_")
 
-    # style ax2
-    ax2.set_ylabel("")  # shared via legend; keep clean
+    ax2.set_ylabel("")
     ax2.spines["right"].set_color("gray")
     ax2.spines["right"].set_linewidth(0.8)
     for spine in ["top", "left"]:
         ax2.spines[spine].set_visible(False)
     ax2.grid(False)
 
-    # return an invisible handle for Δ legend entry (so we only add once per figure)
     delta_handle = mlines.Line2D(
         [], [], color="black", linestyle=":", marker="o",
         markerfacecolor="white", markeredgecolor="black",
@@ -262,14 +312,12 @@ def draw_temperature_subplot(ax, file_to_metrics, dataset_name, model_name, temp
 
 
 # --------------------------------------------------------
-# big figure per dataset: 2x2 subplots (one per model)
+# Main Plotting Wrapper
 # --------------------------------------------------------
 def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures, save_dir="figures"):
-    # style palette for models (Set2 like entropy_all.png)
     model_palette = sns.color_palette("Set2", len(model_names))
     model_to_color = {m: model_palette[i] for i, m in enumerate(model_names)}
 
-    # compute metrics for each model
     model_to_metrics = {}
     for m in model_names:
         model_to_metrics[m] = compute_file_to_metrics_for_model(
@@ -292,14 +340,13 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
             temperatures=temperatures,
             model_color=model_to_color[m]
         )
-        delta_handle = h  # same style for all
+        delta_handle = h
 
-    # shared left y label (match entropy_all.png style)
     fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.1)
     fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
-    # shared right y label for twin axis (ΔEntropy)
+
     fig.text(
-        1.01, 0.5,                      # x, y in figure coordinates
+        1.01, 0.5,
         "ΔEntropy",
         va="center",
         ha="center",
@@ -308,7 +355,6 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
         fontweight="bold"
     )
 
-    # dataset title (optional; remove if you don’t want)
     dataset_name_to_title = {
         "daily_dilemmas": r"Ethic ($\it{DailyDilemmas}$)",
         "medmcqa": r"Medicine ($\it{MedMCQA}$)",
@@ -317,7 +363,6 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
     }
     fig.suptitle(dataset_name_to_title.get(dataset_name, dataset_name), fontsize=14, fontweight="bold", y=0.98)
 
-    # 2 style handles: non-reasoning empty, reasoning hatched (no color)
     style_handles = [
         mpatches.Patch(facecolor="white", edgecolor="black", label="Without Reasoning"),
         mpatches.Patch(facecolor="white", edgecolor="black", hatch="//", label="With Reasoning"),
@@ -327,20 +372,18 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
     if delta_handle is not None:
         handles = handles + [delta_handle]
 
-    # ✅ Legend ABOVE subplots and BELOW title
     fig.legend(
         handles=handles,
         loc="upper center",
         ncol=3,
         frameon=False,
-        bbox_to_anchor=(0.5, 0.955),  # between title (0.98) and axes
+        bbox_to_anchor=(0.5, 0.955),
         fontsize=12,
         handlelength=1.6,
         columnspacing=1.6,
         handletextpad=0.5,
     )
 
-    # layout: leave less room at bottom so legend sits closer
     plt.tight_layout(rect=[0.05, 0.08, 1.0, 0.95])
 
     save_file = f"{save_dir}/temperature_{dataset_name}_all_models.png"
@@ -350,6 +393,10 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
 
 
 if __name__ == "__main__":
+    import os
+    if not os.path.exists("figures"):
+        os.makedirs("figures")
+
     model_names = [
         "Qwen3-4B",
         "Qwen3-32B",
