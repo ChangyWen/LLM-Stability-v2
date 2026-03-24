@@ -43,8 +43,8 @@ def get_masks_retained_keys(result_file):
     return set.intersection(*partial_response_label_to_idx_set.values())
 
 
-def plot_statistics(file_to_metrics, dataset, model):
-    save_file=f"figures/entropy-masks_{dataset}_{model}.png"
+def plot_combined_statistics(all_results):
+    save_file = "figures/entropy-masks_combined.png"
     # --- Global style (modern, consistent) ---
     plt.rcParams.update({
         "font.size": 11,
@@ -56,99 +56,94 @@ def plot_statistics(file_to_metrics, dataset, model):
         "axes.linewidth": 0.8,
     })
 
-    # Order you want to show
-    keys = [
-        f"{model}-Disable",
-        f"{model} (1)",
-        f"{model} (1-2)",
-        f"{model} (1-3)",
-        f"{model} (1-4)",
-    ]
-
-    # Labels shown on x-axis
-    x_labels = ["None", "Step 1", "Steps 1-2", "Steps 1-3", "Steps 1-4"]
-
-    # Extract metrics
-    avg = [file_to_metrics[k]["avg"] for k in keys]
-    ci = [file_to_metrics[k]["ci"] for k in keys]
-
-    # asymmetric CI errors
-    lower_err = [mean - lower for mean, (lower, upper) in zip(avg, ci)]
-    upper_err = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
-    yerr = [lower_err, upper_err]
-
-    x = np.arange(len(keys))
+    # Create 1 row, 2 columns layout with shared Y-axis
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), dpi=1024, sharey=True)
 
     # One main color (Set2) like your recent figs
     point_color = sns.color_palette("Set2", 1)[0]
 
-    fig, ax = plt.subplots(figsize=(6, 4.2), dpi=1024)
+    for ax, (file_to_metrics, dataset, model) in zip(axes, all_results):
+        # Order you want to show
+        keys = [
+            f"{model}-Disable",
+            f"{model} (1)",
+            f"{model} (1-2)",
+            f"{model} (1-3)",
+            f"{model} (1-4)",
+        ]
 
-    # ---- Line behind points (subtle) ----
-    ax.plot(
-        x, avg,
-        linestyle="--",
-        linewidth=2.2,
-        color=point_color,
-        alpha=0.85,
-        zorder=2
-    )
+        # Labels shown on x-axis
+        x_labels = ["None", "Step 1", "Steps 1-2", "Steps 1-3", "Steps 1-4"]
 
-    # ---- Errorbar + points (on top) ----
-    eb = ax.errorbar(
-        x, avg,
-        yerr=yerr,
-        fmt="o",
-        markersize=12.5,
-        capsize=10,
-        elinewidth=2.2,
-        color=point_color,
-        markerfacecolor=point_color,
-        markeredgecolor="black",
-        markeredgewidth=2.2,
-        alpha=1.0,
-        zorder=3
-    )
+        # Extract metrics
+        avg = [file_to_metrics[k]["avg"] for k in keys]
+        ci = [file_to_metrics[k]["ci"] for k in keys]
 
-    # Optional: add hatch markers for “steps” (visual hint)
-    # If you ONLY want hatch for "with reasoning" (not steps), comment this whole block out.
-    # Here: steps are shown as hatched circles by drawing a second marker with hatch-like fill effect is not native.
-    # Instead, we keep the same marker and differentiate via x-labels; cleaner.
+        # asymmetric CI errors
+        lower_err = [mean - lower for mean, (lower, upper) in zip(avg, ci)]
+        upper_err = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
+        yerr = [lower_err, upper_err]
 
-    # ---- CI numeric labels (bold) ----
-    for i, (mean, (lower, upper)) in enumerate(zip(avg, ci)):
-        ax.text(
-            x[i], upper + 0.006, f"{upper:.3f}",
-            ha="center", va="bottom",
-            fontsize=8, fontweight="bold"
-        )
-        ax.text(
-            x[i], lower - 0.006, f"{lower:.3f}",
-            ha="center", va="top",
-            fontsize=8, fontweight="bold"
+        x = np.arange(len(keys))
+
+        # ---- Line behind points (subtle) ----
+        ax.plot(
+            x, avg,
+            linestyle="--",
+            linewidth=2.2,
+            color=point_color,
+            alpha=0.85,
+            zorder=2
         )
 
-    # ---- X axis ----
-    ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, rotation=0, ha="center")
+        # ---- Errorbar + points (on top) ----
+        eb = ax.errorbar(
+            x, avg,
+            yerr=yerr,
+            fmt="o",
+            markersize=12.5,
+            capsize=10,
+            elinewidth=2.2,
+            color=point_color,
+            markerfacecolor=point_color,
+            markeredgecolor="black",
+            markeredgewidth=2.2,
+            alpha=1.0,
+            zorder=3
+        )
 
-    # Keep plot clean: no extra xlabel text; use title/subtitle style instead
-    # ax.set_xlabel("Qwen3-4B", fontsize=11, fontweight="bold", labelpad=8)
+        # ---- CI numeric labels (bold) ----
+        for i, (mean, (lower, upper)) in enumerate(zip(avg, ci)):
+            ax.text(
+                x[i], upper + 0.006, f"{upper:.3f}",
+                ha="center", va="bottom",
+                fontsize=8, fontweight="bold"
+            )
+            ax.text(
+                x[i], lower - 0.006, f"{lower:.3f}",
+                ha="center", va="top",
+                fontsize=8, fontweight="bold"
+            )
 
-    # ---- Y and title ----
-    ax.set_ylabel("Entropy (Decision-making Stability)", fontsize=11, fontweight="bold")
-    ax.set_xlabel("Reasoning Step(s)", fontsize=11, fontweight="bold")
+        # ---- X axis ----
+        ax.set_xticks(x)
+        ax.set_xticklabels(x_labels, rotation=0, ha="center")
 
-    dataset_formatted = "MedMCQA" if dataset == "medmcqa" else "MMLU-Accounting"
-    ax.set_title(f"{dataset_formatted} – {model}", pad=12, weight="bold")
+        # ---- Titles ----
+        dataset_formatted = "MedMCQA" if dataset == "medmcqa" else "MMLU-Accounting"
+        ax.set_title(f"{dataset_formatted} – {model}", pad=12, weight="bold")
 
-    # ---- Grid + spines ----
-    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
-    ax.set_axisbelow(True)
-    for spine in ["top", "right"]:
-        ax.spines[spine].set_visible(False)
+        # ---- Grid + spines ----
+        ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
+        ax.set_axisbelow(True)
+        for spine in ["top", "right"]:
+            ax.spines[spine].set_visible(False)
 
-    # Slightly tighten margins so labels don’t float too far
+    # ---- Sup Labels for the entire figure ----
+    fig.supylabel("Entropy (Decision-making Stability)", fontsize=13, fontweight="bold")
+    fig.supxlabel("Reasoning Step(s)", fontsize=13, fontweight="bold")
+
+    # Tighten margins so labels don’t float too far
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
@@ -257,6 +252,8 @@ if __name__ == "__main__":
         ("mmlu-accounting", "NVIDIA-Nemotron-Nano-9B-v2"),
     ]
 
+    all_results = []
+
     for dataset, model in datasets_models:
         retained_ids = get_retained_keys([
             f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_dt_counts.jsonl",
@@ -281,4 +278,9 @@ if __name__ == "__main__":
         )
 
         res = {**res1, **res2}
-        plot_statistics(res, dataset, model)
+
+        # Append to our list of results rather than plotting immediately
+        all_results.append((res, dataset, model))
+
+    # Plot everything in one big 1x2 figure
+    plot_combined_statistics(all_results)
