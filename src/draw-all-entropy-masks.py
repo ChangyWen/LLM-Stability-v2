@@ -250,24 +250,30 @@ def get_masks_statistics(result_file, retained_ids):
 
 
 if __name__ == "__main__":
-    retained_ids = get_retained_keys([
-        "outputs/mmlu-accounting/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt_counts.jsonl",
-        "outputs/mmlu-accounting/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_counts.jsonl",
-    ])
-    print("Retained:", len(retained_ids))
+    datasets_models = [
+        ("medmcqa", "Qwen3-4B"),
+        ("mmlu-accounting", "NVIDIA-Nemotron-Nano-9B-v2"),
+    ]
 
-    res1 = get_statistics(
-        [
-            "outputs/mmlu-accounting/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt_counts.jsonl",
-            "outputs/mmlu-accounting/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_counts.jsonl",
-        ],
-        [retained_ids, retained_ids],
-    )
+    for dataset, model in datasets_models:
+        retained_ids = get_retained_keys([
+            f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_dt_counts.jsonl",
+            f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_counts.jsonl",
+        ])
+        print("Retained:", len(retained_ids))
 
-    res2 = get_masks_statistics(
-        "outputs/mmlu-accounting/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_masks_completion_counts.jsonl",
-        retained_ids
-    )
+        res1 = get_statistics(
+            [
+                f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_dt_counts.jsonl",
+                f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_counts.jsonl",
+            ],
+            [retained_ids, retained_ids],
+        )
 
-    res = {**res1, **res2}
-    plot_statistics(res)
+        res2 = get_masks_statistics(
+            f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_masks_completion_counts.jsonl",
+            retained_ids
+        )
+
+        res = {**res1, **res2}
+        plot_statistics(res)
