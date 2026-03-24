@@ -43,7 +43,8 @@ def get_masks_retained_keys(result_file):
     return set.intersection(*partial_response_label_to_idx_set.values())
 
 
-def plot_statistics(file_to_metrics, save_file="outputs/mmlu-accounting/figures/entropy-masks.png"):
+def plot_statistics(file_to_metrics, dataset, model):
+    save_file=f"figures/entropy-masks_{dataset}_{model}.png"
     # --- Global style (modern, consistent) ---
     plt.rcParams.update({
         "font.size": 11,
@@ -57,11 +58,11 @@ def plot_statistics(file_to_metrics, save_file="outputs/mmlu-accounting/figures/
 
     # Order you want to show
     keys = [
-        "NVIDIA-Nemotron-Nano-9B-v2-Disable",
-        "NVIDIA-Nemotron-Nano-9B-v2 (1)",
-        "NVIDIA-Nemotron-Nano-9B-v2 (1-2)",
-        "NVIDIA-Nemotron-Nano-9B-v2 (1-3)",
-        "NVIDIA-Nemotron-Nano-9B-v2 (1-4)",
+        f"{model}-Disable",
+        f"{model} (1)",
+        f"{model} (1-2)",
+        f"{model} (1-3)",
+        f"{model} (1-4)",
     ]
 
     # Labels shown on x-axis
@@ -138,7 +139,7 @@ def plot_statistics(file_to_metrics, save_file="outputs/mmlu-accounting/figures/
     ax.set_ylabel("Entropy (Decision-making Stability)", fontsize=11, fontweight="bold")
     ax.set_xlabel("Reasoning Step(s)", fontsize=11, fontweight="bold")
 
-    # ax.set_title("MMLU-Accounting – Entropy (Mean ± 95% CI)", pad=12, weight="bold")
+    # ax.set_title(f"{dataset} – Entropy (Mean ± 95% CI)", pad=12, weight="bold")
 
     # ---- Grid + spines ----
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
@@ -153,18 +154,18 @@ def plot_statistics(file_to_metrics, save_file="outputs/mmlu-accounting/figures/
     print(f"Saved: {save_file}")
 
 
-def get_statistics(result_files, retained_ids_list):
+def get_statistics(result_files, retained_ids_list, dataset, model):
     file_to_metrics = {}
 
     for i, file_name in enumerate(result_files):
-        if "NVIDIA-Nemotron-Nano-9B-v2" in file_name and ("masks_completion" in file_name):
+        if model in file_name and ("masks_completion" in file_name):
             # handled elsewhere
             continue
 
-        if "NVIDIA-Nemotron-Nano-9B-v2" in file_name and ("dt" in file_name):
-            key = "NVIDIA-Nemotron-Nano-9B-v2-Disable"
-        elif "NVIDIA-Nemotron-Nano-9B-v2" in file_name and ("dt" not in file_name):
-            key = "NVIDIA-Nemotron-Nano-9B-v2 (1-4)"
+        if model in file_name and ("dt" in file_name):
+            key = f"{model}-Disable"
+        elif model in file_name and ("dt" not in file_name):
+            key = f"{model} (1-4)"
         else:
             raise ValueError(f"Unexpected file name in this script: {file_name}")
 
@@ -205,12 +206,12 @@ def get_statistics(result_files, retained_ids_list):
     return file_to_metrics
 
 
-def get_masks_statistics(result_file, retained_ids):
+def get_masks_statistics(result_file, retained_ids, model):
     file_to_metrics = {}
     mapping = {
-        "step_1": "NVIDIA-Nemotron-Nano-9B-v2 (1)",
-        "step_1,step_2": "NVIDIA-Nemotron-Nano-9B-v2 (1-2)",
-        "step_1,step_2,step_3": "NVIDIA-Nemotron-Nano-9B-v2 (1-3)",
+        "step_1": f"{model} (1)",
+        "step_1,step_2": f"{model} (1-2)",
+        "step_1,step_2,step_3": f"{model} (1-3)",
     }
 
     for partial_response_label, key in mapping.items():
@@ -268,12 +269,15 @@ if __name__ == "__main__":
                 f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_counts.jsonl",
             ],
             [retained_ids, retained_ids],
+            dataset,
+            model,
         )
 
         res2 = get_masks_statistics(
             f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_masks_completion_counts.jsonl",
-            retained_ids
+            retained_ids,
+            model,
         )
 
         res = {**res1, **res2}
-        plot_statistics(res)
+        plot_statistics(res, dataset, model)
