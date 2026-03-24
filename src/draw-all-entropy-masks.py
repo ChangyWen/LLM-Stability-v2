@@ -139,7 +139,8 @@ def plot_statistics(file_to_metrics, dataset, model):
     ax.set_ylabel("Entropy (Decision-making Stability)", fontsize=11, fontweight="bold")
     ax.set_xlabel("Reasoning Step(s)", fontsize=11, fontweight="bold")
 
-    # ax.set_title(f"{dataset} – Entropy (Mean ± 95% CI)", pad=12, weight="bold")
+    dataset_formatted = "MedMCQA" if dataset == "medmcqa" else "MMLU-Accounting"
+    ax.set_title(f"{dataset_formatted} – {model}", pad=12, weight="bold")
 
     # ---- Grid + spines ----
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
