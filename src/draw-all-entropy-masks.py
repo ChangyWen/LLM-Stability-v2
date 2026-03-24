@@ -58,16 +58,15 @@ def p_to_stars(p):
     elif p < 0.05:
         return "*"
     else:
-        return "n.s."
+        return "N.S."
 
 
 def add_sig_bracket(ax, x1, x2, y, h, text):
     """
     Draws a significance bracket between x1 and x2 at height y.
     """
-    # Adjust font size and style based on significance
-    fontsize = 12 if text != "n.s." else 10
-    fontweight = "bold" if text != "n.s." else "normal"
+    fontsize = 12 if text != "N.S." else 10
+    fontweight = "bold" if text != "N.S." else "normal"
 
     # Bracket line
     ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.2, c="black", clip_on=False)
@@ -166,39 +165,47 @@ def plot_combined_statistics(all_results):
 
         # ---- Significance Brackets ----
 
-        # 1. Adjacent pairs (Staggered to prevent vertical line overlap)
-        # Pair 1: Step 1 vs Steps 1-2
+        # Margin to slightly shrink adjacent brackets horizontally to prevent touching
+        margin = 0.06
+
+        # 1. Adjacent pairs (All placed at y_start)
+
+        # None vs Step 1
+        p_01 = paired_entropy_test_one_sided(file_to_metrics, keys[0], keys[1])
+        add_sig_bracket(ax, 0 + margin, 1 - margin, y_start, h, p_to_stars(p_01))
+
+        # Step 1 vs Steps 1-2
         p_12 = paired_entropy_test_one_sided(file_to_metrics, keys[1], keys[2])
-        add_sig_bracket(ax, 1, 2, y_start, h, p_to_stars(p_12))
+        add_sig_bracket(ax, 1 + margin, 2 - margin, y_start, h, p_to_stars(p_12))
 
-        # Pair 2: Steps 1-2 vs Steps 1-3 (Shifted up slightly)
+        # Steps 1-2 vs Steps 1-3
         p_23 = paired_entropy_test_one_sided(file_to_metrics, keys[2], keys[3])
-        add_sig_bracket(ax, 2, 3, y_start + (y_step * 0.6), h, p_to_stars(p_23))
+        add_sig_bracket(ax, 2 + margin, 3 - margin, y_start, h, p_to_stars(p_23))
 
-        # Pair 3: Steps 1-3 vs Steps 1-4 (Back to base level)
+        # Steps 1-3 vs Steps 1-4
         p_34 = paired_entropy_test_one_sided(file_to_metrics, keys[3], keys[4])
-        add_sig_bracket(ax, 3, 4, y_start, h, p_to_stars(p_34))
+        add_sig_bracket(ax, 3 + margin, 4 - margin, y_start, h, p_to_stars(p_34))
 
-        # 2. Baseline ("None") vs. Step X (Stacked sequentially)
-        for i in range(1, 5):
+        # 2. Baseline ("None") vs. remaining steps (Stacked sequentially above the adjacent pairs)
+        for i in range(2, 5):
             p_val = paired_entropy_test_one_sided(file_to_metrics, keys[0], keys[i])
             stars = p_to_stars(p_val)
-            # Start stacking above the adjacent brackets
-            stack_level = y_start + (i + 1) * y_step
+            # Stack levels increment based on the step index, offset by 1 since i starts at 2
+            stack_level = y_start + (i - 1) * y_step
             add_sig_bracket(ax, 0, i, stack_level, h, stars)
 
         # ---- Plot formatting ----
         ax.set_xticks(x)
         ax.set_xticklabels(x_labels, rotation=0, ha="center")
         dataset_formatted = "MedMCQA" if dataset == "medmcqa" else "MMLU-Accounting"
-        ax.set_title(f"{dataset_formatted} – {model}", pad=20, weight="bold")
+        ax.set_title(f"{dataset_formatted} ({model})", pad=20, weight="bold")
         ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
         ax.set_axisbelow(True)
         for spine in ["top", "right"]:
             ax.spines[spine].set_visible(False)
 
-        # Explicitly set ylim to fit all brackets below the title
-        max_bracket_height = y_start + 6 * y_step + h * 2
+        # Adjusted explicit ylim to save vertical space (reduced multiplier from 4 to 3)
+        max_bracket_height = y_start + 3 * y_step + (h * 3)
         ax.set_ylim(global_min_y - (y_range * 0.1), max_bracket_height)
 
     fig.supylabel("Entropy (Decision-making Stability)", fontsize=13, fontweight="bold", x=0.02)
