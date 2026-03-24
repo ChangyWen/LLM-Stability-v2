@@ -1,4 +1,5 @@
 import json
+import math
 import matplotlib.pyplot as plt
 from collections import Counter
 import numpy as np
@@ -43,9 +44,66 @@ def get_masks_retained_keys(result_file):
     return set.intersection(*partial_response_label_to_idx_set.values())
 
 
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    Returns 'n.s.' if not significant to clarify the bracket.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return "n.s."
+
+
+def add_sig_bracket(ax, x1, x2, y, h, text):
+    """
+    Draws a significance bracket between x1 and x2 at height y.
+    """
+    # Adjust font size and style based on significance
+    fontsize = 12 if text != "n.s." else 10
+    fontweight = "bold" if text != "n.s." else "normal"
+
+    # Bracket line
+    ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.2, c="black", clip_on=False)
+
+    # Stars or n.s. text
+    ax.text((x1 + x2) / 2, y + h + (h * 0.2), text,
+            ha="center", va="bottom", fontsize=fontsize, fontweight=fontweight,
+            color="black", clip_on=False)
+
+
+def paired_entropy_test_one_sided(file_to_metrics, key_baseline, key_compare):
+    """
+    One-sided paired Wilcoxon test:
+    H1: Entropy_{baseline} > Entropy_{compare}
+    Returns p-value (float).
+    """
+    a = file_to_metrics[key_baseline]["idx_to_entropy"]
+    b = file_to_metrics[key_compare]["idx_to_entropy"]
+
+    common = sorted(set(a.keys()) & set(b.keys()))
+    if len(common) == 0:
+        return float("nan")
+
+    x_base = np.array([a[i] for i in common], dtype=float)
+    x_comp = np.array([b[i] for i in common], dtype=float)
+
+    diff = x_base - x_comp
+    if np.allclose(diff, 0):
+        return 1.0
+
+    res = stats.wilcoxon(x_base, x_comp, alternative="greater", zero_method="wilcox")
+    return float(res.pvalue)
+
+
 def plot_combined_statistics(all_results):
     save_file = "figures/entropy-masks_combined.png"
-    # --- Global style (modern, consistent) ---
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -56,14 +114,27 @@ def plot_combined_statistics(all_results):
         "axes.linewidth": 0.8,
     })
 
-    # Create 1 row, 2 columns layout with shared Y-axis
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), dpi=1024, sharey=True)
-
-    # One main color (Set2) like your recent figs
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6), dpi=1024, sharey=True)
     point_color = sns.color_palette("Set2", 1)[0]
 
+    # --- Pre-calculate Global Y Bounds for consistent bracket scaling ---
+    all_upper_bounds = []
+    all_lower_bounds = []
+    for res, _, _ in all_results:
+        for k in res:
+            all_lower_bounds.append(res[k]["ci"][0])
+            all_upper_bounds.append(res[k]["ci"][1])
+
+    global_min_y = min(all_lower_bounds)
+    global_max_y = max(all_upper_bounds)
+    y_range = global_max_y - global_min_y
+
+    # Dynamically scale bracket height and spacing
+    y_start = global_max_y + (y_range * 0.1)
+    y_step = y_range * 0.12
+    h = y_range * 0.025
+
     for ax, (file_to_metrics, dataset, model) in zip(axes, all_results):
-        # Order you want to show
         keys = [
             f"{model}-Disable",
             f"{model} (1)",
@@ -71,79 +142,68 @@ def plot_combined_statistics(all_results):
             f"{model} (1-3)",
             f"{model} (1-4)",
         ]
-
-        # Labels shown on x-axis
         x_labels = ["None", "Step 1", "Steps 1-2", "Steps 1-3", "Steps 1-4"]
 
-        # Extract metrics
         avg = [file_to_metrics[k]["avg"] for k in keys]
         ci = [file_to_metrics[k]["ci"] for k in keys]
-
-        # asymmetric CI errors
         lower_err = [mean - lower for mean, (lower, upper) in zip(avg, ci)]
         upper_err = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
         yerr = [lower_err, upper_err]
-
         x = np.arange(len(keys))
 
-        # ---- Line behind points (subtle) ----
-        ax.plot(
-            x, avg,
-            linestyle="--",
-            linewidth=2.2,
-            color=point_color,
-            alpha=0.85,
-            zorder=2
-        )
+        # ---- Line & Points ----
+        ax.plot(x, avg, linestyle="--", linewidth=2.2, color=point_color, alpha=0.85, zorder=2)
+        ax.errorbar(x, avg, yerr=yerr, fmt="o", markersize=12.5, capsize=10, elinewidth=2.2,
+                    color=point_color, markerfacecolor=point_color, markeredgecolor="black",
+                    markeredgewidth=2.2, alpha=1.0, zorder=3)
 
-        # ---- Errorbar + points (on top) ----
-        eb = ax.errorbar(
-            x, avg,
-            yerr=yerr,
-            fmt="o",
-            markersize=12.5,
-            capsize=10,
-            elinewidth=2.2,
-            color=point_color,
-            markerfacecolor=point_color,
-            markeredgecolor="black",
-            markeredgewidth=2.2,
-            alpha=1.0,
-            zorder=3
-        )
-
-        # ---- CI numeric labels (bold) ----
+        # ---- CI numeric labels ----
         for i, (mean, (lower, upper)) in enumerate(zip(avg, ci)):
-            ax.text(
-                x[i], upper + 0.006, f"{upper:.3f}",
-                ha="center", va="bottom",
-                fontsize=8, fontweight="bold"
-            )
-            ax.text(
-                x[i], lower - 0.006, f"{lower:.3f}",
-                ha="center", va="top",
-                fontsize=8, fontweight="bold"
-            )
+            ax.text(x[i], upper + (y_range * 0.02), f"{upper:.3f}",
+                    ha="center", va="bottom", fontsize=8, fontweight="bold")
+            ax.text(x[i], lower - (y_range * 0.02), f"{lower:.3f}",
+                    ha="center", va="top", fontsize=8, fontweight="bold")
 
-        # ---- X axis ----
+        # ---- Significance Brackets ----
+
+        # 1. Adjacent pairs (Staggered to prevent vertical line overlap)
+        # Pair 1: Step 1 vs Steps 1-2
+        p_12 = paired_entropy_test_one_sided(file_to_metrics, keys[1], keys[2])
+        add_sig_bracket(ax, 1, 2, y_start, h, p_to_stars(p_12))
+
+        # Pair 2: Steps 1-2 vs Steps 1-3 (Shifted up slightly)
+        p_23 = paired_entropy_test_one_sided(file_to_metrics, keys[2], keys[3])
+        add_sig_bracket(ax, 2, 3, y_start + (y_step * 0.6), h, p_to_stars(p_23))
+
+        # Pair 3: Steps 1-3 vs Steps 1-4 (Back to base level)
+        p_34 = paired_entropy_test_one_sided(file_to_metrics, keys[3], keys[4])
+        add_sig_bracket(ax, 3, 4, y_start, h, p_to_stars(p_34))
+
+        # 2. Baseline ("None") vs. Step X (Stacked sequentially)
+        for i in range(1, 5):
+            p_val = paired_entropy_test_one_sided(file_to_metrics, keys[0], keys[i])
+            stars = p_to_stars(p_val)
+            # Start stacking above the adjacent brackets
+            stack_level = y_start + (i + 1) * y_step
+            add_sig_bracket(ax, 0, i, stack_level, h, stars)
+
+        # ---- Plot formatting ----
         ax.set_xticks(x)
         ax.set_xticklabels(x_labels, rotation=0, ha="center")
-
-        # ---- Titles ----
         dataset_formatted = "MedMCQA" if dataset == "medmcqa" else "MMLU-Accounting"
-        ax.set_title(f"{dataset_formatted} – {model}", pad=12, weight="bold")
-
-        # ---- Grid + spines ----
+        ax.set_title(f"{dataset_formatted} – {model}", pad=20, weight="bold")
         ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
         ax.set_axisbelow(True)
         for spine in ["top", "right"]:
             ax.spines[spine].set_visible(False)
 
-    # ---- Sup Labels for the entire figure ----
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=13, fontweight="bold")
-    fig.supxlabel("Reasoning Step(s)", fontsize=13, fontweight="bold")
+        # Explicitly set ylim to fit all brackets below the title
+        max_bracket_height = y_start + 6 * y_step + h * 2
+        ax.set_ylim(global_min_y - (y_range * 0.1), max_bracket_height)
 
-    # Tighten margins so labels don’t float too far
+    fig.supylabel("Entropy (Decision-making Stability)", fontsize=13, fontweight="bold", x=0.02)
+    fig.supxlabel("Reasoning Step(s)", fontsize=13, fontweight="bold", y=0.02)
+
     plt.tight_layout()
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
@@ -155,7 +215,6 @@ def get_statistics(result_files, retained_ids_list, dataset, model):
 
     for i, file_name in enumerate(result_files):
         if model in file_name and ("masks_completion" in file_name):
-            # handled elsewhere
             continue
 
         if model in file_name and ("dt" in file_name):
@@ -169,6 +228,7 @@ def get_statistics(result_files, retained_ids_list, dataset, model):
         retained_ids = retained_ids_list[i]
 
         entropy_list = []
+        idx_to_entropy = {}
         with open(file_name, "r") as f:
             for line in f:
                 item = json.loads(line)
@@ -182,7 +242,10 @@ def get_statistics(result_files, retained_ids_list, dataset, model):
                 if total_count <= 0:
                     continue
                 distribution = [count / total_count for count in answer_counts.values()]
-                entropy_list.append(entropy(np.array(distribution)))
+
+                ent_val = entropy(np.array(distribution))
+                entropy_list.append(ent_val)
+                idx_to_entropy[idx] = ent_val
 
         entropy_list = np.array(entropy_list, dtype=float)
         mean = float(np.mean(entropy_list))
@@ -192,12 +255,7 @@ def get_statistics(result_files, retained_ids_list, dataset, model):
 
         file_to_metrics[key]["avg"] = mean
         file_to_metrics[key]["ci"] = ci
-
-        print(key)
-        print(f"retained_ids: {len(retained_ids)}")
-        print("avg:", f"{mean:.4f}")
-        print("ci:", f"{ci[0]:.4f} - {ci[1]:.4f}")
-        print("-" * 100)
+        file_to_metrics[key]["idx_to_entropy"] = idx_to_entropy
 
     return file_to_metrics
 
@@ -212,6 +270,7 @@ def get_masks_statistics(result_file, retained_ids, model):
 
     for partial_response_label, key in mapping.items():
         entropy_list = []
+        idx_to_entropy = {}
         with open(result_file, "r") as f:
             for line in f:
                 item = json.loads(line)
@@ -227,7 +286,10 @@ def get_masks_statistics(result_file, retained_ids, model):
                 if total_count < 35:
                     continue
                 distribution = [count / total_count for count in answer_counts.values()]
-                entropy_list.append(entropy(np.array(distribution)))
+
+                ent_val = entropy(np.array(distribution))
+                entropy_list.append(ent_val)
+                idx_to_entropy[idx] = ent_val
 
         entropy_list = np.array(entropy_list, dtype=float)
         mean = float(np.mean(entropy_list))
@@ -235,13 +297,11 @@ def get_masks_statistics(result_file, retained_ids, model):
         sem = float(np.std(entropy_list, ddof=1) / np.sqrt(n)) if n >= 2 else 0.0
         ci = stats.t.interval(0.95, n - 1, loc=mean, scale=sem) if n >= 2 else (mean, mean)
 
-        file_to_metrics[key] = {"avg": mean, "ci": ci}
-
-        print(key)
-        print(f"retained_ids: {len(retained_ids)}")
-        print("avg:", f"{mean:.4f}")
-        print("ci:", f"{ci[0]:.4f} - {ci[1]:.4f}")
-        print("-" * 100)
+        file_to_metrics[key] = {
+            "avg": mean,
+            "ci": ci,
+            "idx_to_entropy": idx_to_entropy
+        }
 
     return file_to_metrics
 
@@ -259,7 +319,6 @@ if __name__ == "__main__":
             f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_dt_counts.jsonl",
             f"outputs/{dataset}/processed_results/{model}_temp0.6_n50_counts.jsonl",
         ])
-        print("Retained:", len(retained_ids))
 
         res1 = get_statistics(
             [
@@ -278,9 +337,6 @@ if __name__ == "__main__":
         )
 
         res = {**res1, **res2}
-
-        # Append to our list of results rather than plotting immediately
         all_results.append((res, dataset, model))
 
-    # Plot everything in one big 1x2 figure
     plot_combined_statistics(all_results)
