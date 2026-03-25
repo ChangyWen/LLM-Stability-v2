@@ -25,12 +25,12 @@ code:
 
 target:
   service: sing
-  name: Ranking
+  # name: Ranking
   # name: Recall
   # name: Feeds
   # name: msrresrchvc
   # name: msrresrchbasicvc
-  # name: Recall
+  name: Recall
   # name: Shared
   workspace_name: CS-NewsAndFeeds-Singularity
 
@@ -93,9 +93,9 @@ jobs:
     # - python src/medmcqa/get-masks.py --file_name Qwen3-4B_temp0.6_n50
     # - python src/medmcqa/get-masks-completion.py --file_name Qwen3-4B_temp0.6_n50_masks
     # - python src/medmcqa/get-results-completion.py --file_name Qwen3-4B_temp0.6_n50_masks_completion
-    - python src/medmcqa/get-masks.py --file_name Qwen3-30B-A3B_temp0.6_n50
-    - python src/medmcqa/get-masks-completion.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks
-    - python src/medmcqa/get-results-completion.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks_completion
+    # - python src/medmcqa/get-masks.py --file_name Qwen3-30B-A3B_temp0.6_n50
+    # - python src/medmcqa/get-masks-completion.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks
+    - python src/medmcqa/get-masks-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks_completion
     ########### mmlu-accounting ###########
     # - python src/mmlu-accounting/get-masks.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
     # - python src/mmlu-accounting/get-masks-completion.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_masks
