@@ -7,6 +7,7 @@ from scipy.stats import entropy
 from scipy import stats
 import seaborn as sns
 import matplotlib.patches as mpatches
+from collections import defaultdict
 
 
 def get_retained_keys(result_files, dataset_name):
@@ -142,8 +143,32 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     bar_width = 1.0
 
     # 6 colors for 6 models
-    palette = sns.color_palette("Set2", len(model_labels))
-    model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
+    # palette = sns.color_palette("Set2", len(model_labels))
+    # model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
+
+    # 1. Assign a base sequential palette to each model family.
+    # You can change these to "Purples", "Oranges", "mako", "flare", etc.
+    family_palettes = {
+        "Qwen": "Blues",
+        "Seed": "Greens",
+        "Nemotron": "Reds"
+    }
+    # 2. Group the exact model labels into their respective families
+    family_groups = defaultdict(list)
+    for model in model_labels:
+        for family in family_palettes.keys():
+            if model.startswith(family):
+                family_groups[family].append(model)
+                break
+    # 3. Generate the model_to_color dictionary
+    model_to_color = {}
+    for family, models in family_groups.items():
+        palette_name = family_palettes[family]
+        # We ask for `len(models) + 1` colors and slice `[1:]` to drop the very
+        # first shade, which is often too light/white to see clearly on a white background.
+        colors = sns.color_palette(palette_name, n_colors=len(models) + 1)[1:]
+        for i, model in enumerate(models):
+            model_to_color[model] = colors[i]
 
     # map each key -> its model label
     def key_to_model(k: str) -> str:
