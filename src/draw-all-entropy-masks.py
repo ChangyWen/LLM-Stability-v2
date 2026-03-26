@@ -1,6 +1,8 @@
 import json
 import math
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
 from collections import Counter
 import numpy as np
 from scipy.stats import entropy
@@ -47,7 +49,7 @@ def get_masks_retained_keys(result_file):
 def p_to_stars(p):
     """
     Convert p-value to significance stars.
-    Returns 'n.s.' if not significant to clarify the bracket.
+    Returns 'N.S.' if not significant to clarify the bracket.
     """
     if math.isnan(p):
         return ""
@@ -121,8 +123,10 @@ def plot_combined_statistics(all_results):
     all_lower_bounds = []
     for res, _, _ in all_results:
         for k in res:
-            all_lower_bounds.append(res[k]["ci"][0])
-            all_upper_bounds.append(res[k]["ci"][1])
+            entropies = list(res[k]["idx_to_entropy"].values())
+            # Ensure bounds account for both the 95% CI and the 75th/25th percentiles
+            all_lower_bounds.append(min(res[k]["ci"][0], np.percentile(entropies, 25)))
+            all_upper_bounds.append(max(res[k]["ci"][1], np.percentile(entropies, 75)))
 
     global_min_y = min(all_lower_bounds)
     global_max_y = max(all_upper_bounds)
@@ -150,47 +154,57 @@ def plot_combined_statistics(all_results):
         yerr = [lower_err, upper_err]
         x = np.arange(len(keys))
 
-        # ---- Line & Points ----
-        ax.plot(x, avg, linestyle="--", linewidth=2.2, color=point_color, alpha=0.85, zorder=2)
-        ax.errorbar(x, avg, yerr=yerr, fmt="o", markersize=12.5, capsize=10, elinewidth=2.2,
-                    color=point_color, markerfacecolor=point_color, markeredgecolor="black",
-                    markeredgewidth=2.2, alpha=1.0, zorder=3)
+        # ---- Calculate Percentiles (25th, 50th, 75th) ----
+        p25 = [np.percentile(list(file_to_metrics[k]["idx_to_entropy"].values()), 25) for k in keys]
+        p50 = [np.percentile(list(file_to_metrics[k]["idx_to_entropy"].values()), 50) for k in keys]
+        p75 = [np.percentile(list(file_to_metrics[k]["idx_to_entropy"].values()), 75) for k in keys]
+
+        # ---- 1. Line connecting means (subtle) ----
+        ax.plot(x, avg, linestyle="--", linewidth=2.2, color=point_color, alpha=0.85, zorder=1)
+
+        # ---- 2. IQR Thick Bar (25th to 75th percentile) ----
+        ax.vlines(x, p25, p75, color=point_color, linewidth=12, alpha=0.3, zorder=2)
+
+        # ---- 3. Median Marker (50th percentile tick) ----
+        # Using a distinct black horizontal tick for the median
+        ax.scatter(x, p50, marker='_', color='black', s=200, linewidth=2.5, zorder=3)
+
+        # ---- 4. Mean and 95% CI Errorbar (on top) ----
+        eb = ax.errorbar(x, avg, yerr=yerr, fmt="o", markersize=10, capsize=6, elinewidth=2.2,
+                         color=point_color, markerfacecolor=point_color, markeredgecolor="black",
+                         markeredgewidth=1.5, alpha=1.0, zorder=4)
 
         # ---- CI numeric labels ----
-        for i, (mean, (lower, upper)) in enumerate(zip(avg, ci)):
-            ax.text(x[i], upper + (y_range * 0.02), f"{upper:.3f}",
+        for i, (mean, (lower, upper), p_75, p_25) in enumerate(zip(avg, ci, p75, p25)):
+            # Place labels dynamically so they don't overlap the IQR bar if it's taller than the CI
+            label_top = max(upper, p_75)
+            label_bottom = min(lower, p_25)
+
+            ax.text(x[i], label_top + (y_range * 0.02), f"{upper:.3f}",
                     ha="center", va="bottom", fontsize=8, fontweight="bold")
-            ax.text(x[i], lower - (y_range * 0.02), f"{lower:.3f}",
+            ax.text(x[i], label_bottom - (y_range * 0.02), f"{lower:.3f}",
                     ha="center", va="top", fontsize=8, fontweight="bold")
 
         # ---- Significance Brackets ----
-
-        # Margin to slightly shrink adjacent brackets horizontally to prevent touching
         margin = 0.06
 
-        # 1. Adjacent pairs (All placed at y_start)
-
-        # None vs Step 1
+        # Adjacent pairs
         p_01 = paired_entropy_test_one_sided(file_to_metrics, keys[0], keys[1])
         add_sig_bracket(ax, 0 + margin, 1 - margin, y_start, h, p_to_stars(p_01))
 
-        # Step 1 vs Steps 1-2
         p_12 = paired_entropy_test_one_sided(file_to_metrics, keys[1], keys[2])
         add_sig_bracket(ax, 1 + margin, 2 - margin, y_start, h, p_to_stars(p_12))
 
-        # Steps 1-2 vs Steps 1-3
         p_23 = paired_entropy_test_one_sided(file_to_metrics, keys[2], keys[3])
         add_sig_bracket(ax, 2 + margin, 3 - margin, y_start, h, p_to_stars(p_23))
 
-        # Steps 1-3 vs Steps 1-4
         p_34 = paired_entropy_test_one_sided(file_to_metrics, keys[3], keys[4])
         add_sig_bracket(ax, 3 + margin, 4 - margin, y_start, h, p_to_stars(p_34))
 
-        # 2. Baseline ("None") vs. remaining steps (Stacked sequentially above the adjacent pairs)
+        # Baseline vs remaining
         for i in range(2, 5):
             p_val = paired_entropy_test_one_sided(file_to_metrics, keys[0], keys[i])
             stars = p_to_stars(p_val)
-            # Stack levels increment based on the step index, offset by 1 since i starts at 2
             stack_level = y_start + (i - 1) * y_step
             add_sig_bracket(ax, 0, i, stack_level, h, stars)
 
@@ -204,14 +218,26 @@ def plot_combined_statistics(all_results):
         for spine in ["top", "right"]:
             ax.spines[spine].set_visible(False)
 
-        # Adjusted explicit ylim to save vertical space (reduced multiplier from 4 to 3)
         max_bracket_height = y_start + 3 * y_step + (h * 3)
         ax.set_ylim(global_min_y - (y_range * 0.1), max_bracket_height)
 
+    # ---- Sup Labels and Legend ----
     fig.supylabel("Entropy (Decision-making Stability)", fontsize=13, fontweight="bold", x=0.02)
-    fig.supxlabel("Reasoning Step(s)", fontsize=13, fontweight="bold", y=0.02)
+    fig.supxlabel("Reasoning Step(s)", fontsize=13, fontweight="bold", y=0.08)
 
-    plt.tight_layout()
+    # Custom Legend to explain the new visual elements
+    mean_ci_line = mlines.Line2D([], [], color=point_color, marker='o', linestyle='--',
+                                 markersize=9, markeredgecolor='black', label='Mean & 95% CI')
+    iqr_patch = mpatches.Patch(color=point_color, alpha=0.3, label='IQR (25th - 75th)')
+    median_marker = mlines.Line2D([], [], color='black', marker='_', linestyle='None',
+                                  markersize=12, markeredgewidth=2.5, label='Median')
+
+    fig.legend(handles=[mean_ci_line, iqr_patch, median_marker],
+               loc="lower center", ncol=3, bbox_to_anchor=(0.53, -0.02),
+               frameon=False, fontsize=11, columnspacing=1.5)
+
+    # Adjust layout to make room for the legend at the bottom
+    plt.tight_layout(rect=[0, 0.1, 1, 1])
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
     print(f"Saved: {save_file}")
@@ -315,7 +341,7 @@ def get_masks_statistics(result_file, retained_ids, model):
 
 if __name__ == "__main__":
     datasets_models = [
-        ("medmcqa", "Qwen3-30B-A3B"),
+        ("medmcqa", "Qwen3-4B"),
         ("mmlu-accounting", "NVIDIA-Nemotron-Nano-9B-v2"),
     ]
 
