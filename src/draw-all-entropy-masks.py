@@ -315,7 +315,7 @@ def get_masks_statistics(result_file, retained_ids, model):
 
 if __name__ == "__main__":
     datasets_models = [
-        ("medmcqa", "Qwen3-4B"),
+        ("medmcqa", "Qwen3-30B-A3B"),
         ("mmlu-accounting", "NVIDIA-Nemotron-Nano-9B-v2"),
     ]
 

@@ -102,7 +102,7 @@ def add_sig_bracket(ax, x1, x2, y, h, text, fontsize=11):
             color="black", clip_on=False)
 
 
-def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True):
+def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True, show_ylabel=True, model_to_color=None):
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -145,30 +145,6 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
     # 6 colors for 6 models
     # palette = sns.color_palette("Set2", len(model_labels))
     # model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
-
-    # 1. Assign a base sequential palette to each model family.
-    # You can change these to "Purples", "Oranges", "mako", "flare", etc.
-    family_palettes = {
-        "Qwen": "Blues",
-        "Seed": "Greens",
-        "Nemotron": "Reds"
-    }
-    # 2. Group the exact model labels into their respective families
-    family_groups = defaultdict(list)
-    for model in model_labels:
-        for family in family_palettes.keys():
-            if model.startswith(family):
-                family_groups[family].append(model)
-                break
-    # 3. Generate the model_to_color dictionary
-    model_to_color = {}
-    for family, models in family_groups.items():
-        palette_name = family_palettes[family]
-        # We ask for `len(models) + 1` colors and slice `[1:]` to drop the very
-        # first shade, which is often too light/white to see clearly on a white background.
-        colors = sns.color_palette(palette_name, n_colors=len(models) + 1)[1:]
-        for i, model in enumerate(models):
-            model_to_color[model] = colors[i]
 
     # map each key -> its model label
     def key_to_model(k: str) -> str:
@@ -244,7 +220,7 @@ def draw_entropy_bars_on_ax(ax, file_to_metrics, dataset_name, show_xlabel=True,
         ax.spines[spine].set_visible(False)
 
 
-def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
+def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png", model_to_color=None):
     fig, axes = plt.subplots(2, 2, figsize=(16, 8), dpi=1024)
 
     dataset_order = [
@@ -263,6 +239,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
             dataset_name=dataset_name,
             show_xlabel=True,
             show_ylabel=(c == 0),
+            model_to_color=model_to_color,
         )
 
     # --- Shared labels (tight spacing) ---
@@ -271,10 +248,9 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png"):
 
     # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
     model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
-    palette = sns.color_palette("Set2", len(model_labels))
 
     model_handles = [
-        mpatches.Patch(facecolor=palette[i], edgecolor="black", label=model_labels[i])
+        mpatches.Patch(facecolor=model_to_color[model_labels[i]], edgecolor="black", label=model_labels[i])
         for i in range(len(model_labels))
     ]
 
@@ -486,4 +462,34 @@ if __name__ == "__main__":
             print(f"{dataset} {m}: {p:.8f}")
         print("-" * 100)
 
-    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png")
+
+    # 1. Assign a base sequential palette to each model family.
+    # You can change these to "Purples", "Oranges", "mako", "flare", etc.
+    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
+    family_palettes = {
+        "Qwen": "Blues",
+        "Seed": "mako",
+        "NVIDIA-Nemotron": "Purples"
+    }
+    # 2. Group the exact model labels into their respective families
+    family_groups = defaultdict(list)
+    for model in model_labels:
+        for family in family_palettes.keys():
+            if model.startswith(family):
+                family_groups[family].append(model)
+                break
+    # 3. Generate the model_to_color dictionary
+    model_to_color = {}
+    for family, models in family_groups.items():
+        palette_name = family_palettes[family]
+        # We ask for `len(models) + 1` colors and slice `[1:]` to drop the very
+        # first shade, which is often too light/white to see clearly on a white background.
+        colors = sns.color_palette(palette_name, n_colors=len(models) + 1)[1:]
+        for i, model in enumerate(models):
+            model_to_color[model] = colors[i]
+
+    model_to_color["Seed-36B"] = model_to_color["Seed-OSS-36B-Instruct"]
+    model_to_color["Nemotron-9B"] = model_to_color["NVIDIA-Nemotron-Nano-9B-v2"]
+    model_to_color["Nemotron-12B"] = model_to_color["NVIDIA-Nemotron-Nano-12B-v2"]
+
+    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png", model_to_color=model_to_color)

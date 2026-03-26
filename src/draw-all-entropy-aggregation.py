@@ -241,8 +241,34 @@ def draw_aggregated_entropy_bars(
     bar_width = 1.0
 
     # --- same color set ---
-    palette = sns.color_palette("Set2", len(model_labels))
-    model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
+    # palette = sns.color_palette("Set2", len(model_labels))
+    # model_to_color = {m: palette[i] for i, m in enumerate(model_labels)}
+
+    family_palettes = {
+        "Qwen": "Blues",
+        "Seed": "mako",
+        "Nemotron": "Purples"
+    }
+    # 2. Group the exact model labels into their respective families
+    family_groups = defaultdict(list)
+    for model in model_labels:
+        for family in family_palettes.keys():
+            if model.startswith(family):
+                family_groups[family].append(model)
+                break
+    # 3. Generate the model_to_color dictionary
+    model_to_color = {}
+    for family, models in family_groups.items():
+        palette_name = family_palettes[family]
+        # We ask for `len(models) + 1` colors and slice `[1:]` to drop the very
+        # first shade, which is often too light/white to see clearly on a white background.
+        colors = sns.color_palette(palette_name, n_colors=len(models) + 1)[1:]
+        for i, model in enumerate(models):
+            model_to_color[model] = colors[i]
+
+    model_to_color["Seed-OSS-36B-Instruct"] = model_to_color["Seed-36B"]
+    model_to_color["NVIDIA-Nemotron-Nano-9B-v2"] = model_to_color["Nemotron-9B"]
+    model_to_color["NVIDIA-Nemotron-Nano-12B-v2"] = model_to_color["Nemotron-12B"]
 
     def key_to_model(k: str) -> str:
         return k.replace("-Disable", "")
@@ -321,7 +347,7 @@ def draw_aggregated_entropy_bars(
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
     model_handles = [
-        mpatches.Patch(facecolor=palette[i], edgecolor="black", label=legend_model_labels[i])
+        mpatches.Patch(facecolor=model_to_color[legend_model_labels[i]], edgecolor="black", label=legend_model_labels[i])
         for i in range(len(legend_model_labels))
     ]
     style_handles = [
