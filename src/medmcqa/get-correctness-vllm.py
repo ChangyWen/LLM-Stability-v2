@@ -79,11 +79,12 @@ def load_dataset(file, tokenizer):
                 uuid = str(item["uuid"])
                 question = item["question"]
                 answer_counts = item["answer_counts"]
+                ground_truth = idx_to_ground_truth[idx]
 
                 for answer, _ in answer_counts.items():
                     questions.append(question)
                     answers.append(answer)
-                    ground_truths.append(idx_to_ground_truth[idx])
+                    ground_truths.append(ground_truth)
                     uuids.append(uuid)
                     idxs.append(idx)
 
