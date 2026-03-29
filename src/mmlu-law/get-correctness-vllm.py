@@ -71,7 +71,7 @@ def load_dataset(file, tokenizer):
             ground_truth = item["ground_truth"]
             idx_to_ground_truth[idx] = ground_truth
 
-    file = os.path.join("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/mmlu-law/processed_results", file)
+    file = os.path.join("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/backup-from-sandbox-2026-0315-2324/outputs/mmlu-law/processed_results", file)
     with open(file, "r") as f:
         for line in f:
             try:
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     file_name = args.file_name + "_counts.jsonl"
-    all_files = os.listdir("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/mmlu-law/processed_results")
+    all_files = os.listdir("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/backup-from-sandbox-2026-0315-2324/outputs/mmlu-law/processed_results")
     assert file_name in all_files
 
     save_dir = "/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/mmlu-law/processed_results"
