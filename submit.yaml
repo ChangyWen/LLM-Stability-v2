@@ -565,6 +565,43 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name Qwen3-32B_temp0.6_n50_dt_step1
     # - python src/medmcqa/run-vllm-ablation.py --model_name Qwen/Qwen3-30B-A3B --temperature 0.6 --disable_thinking
     # - python src/medmcqa/get-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt_step1
+    ################ accuracy through vllm ################
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
+    # - python src/mmlu-accounting/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50_dt
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50_dt
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
+    # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
   submit_args:
     env:
       {
