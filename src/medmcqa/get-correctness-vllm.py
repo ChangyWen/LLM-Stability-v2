@@ -71,6 +71,7 @@ def load_dataset(file, tokenizer):
             ground_truth = item["ground_truth"]
             idx_to_ground_truth[idx] = ground_truth
 
+    file = os.path.join("/mnt/blob_output/v-dachengwen/LLM-Stability-v2/outputs/medmcqa/processed_results", file)
     with open(file, "r") as f:
         for line in f:
             try:

@@ -27,10 +27,10 @@ target:
   service: sing
   # name: Ranking
   # name: Recall
-  # name: Feeds
+  name: Feeds
   # name: msrresrchvc
   # name: msrresrchbasicvc
-  name: Recall
+  # name: Recall
   # name: Shared
   workspace_name: CS-NewsAndFeeds-Singularity
 
@@ -46,8 +46,8 @@ jobs:
   # sku: G8-H100
   sku: G8-A100
   # sku: G4-A100
-  # sla_tier: Standard
-  sla_tier: Premium
+  sla_tier: Standard
+  # sla_tier: Premium
   command:
     ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
@@ -95,7 +95,7 @@ jobs:
     # - python src/medmcqa/get-results-completion.py --file_name Qwen3-4B_temp0.6_n50_masks_completion
     # - python src/medmcqa/get-masks.py --file_name Qwen3-30B-A3B_temp0.6_n50
     # - python src/medmcqa/get-masks-completion.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks
-    - python src/medmcqa/get-masks-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks_completion
+    # - python src/medmcqa/get-masks-results.py --file_name Qwen3-30B-A3B_temp0.6_n50_masks_completion
     ########### mmlu-accounting ###########
     # - python src/mmlu-accounting/get-masks.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
     # - python src/mmlu-accounting/get-masks-completion.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_masks
@@ -392,6 +392,18 @@ jobs:
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.9_n50_dt
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50
     # - python src/medmcqa/get-results.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp1.2_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-4B_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-32B_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Qwen3-30B-A3B_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name Seed-OSS-36B-Instruct_temp1.1_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
+    # - python src/medmcqa/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
     ########### temperature experiments (mmlu-accounting) ###########
     # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.3
     # - python src/mmlu-accounting/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.3 --disable_thinking
