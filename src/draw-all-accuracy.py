@@ -211,13 +211,13 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
                     fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
-        ax.set_title(dataset.replace("-", " ").title(), fontsize=14)
+        ax.set_title(dataset.replace("-", " ").title(), fontsize=14, fontweight="bold")
 
         if i == 0:
-            ax.set_ylabel("Accuracy (%)", fontsize=14)
+            ax.set_ylabel("Accuracy (%)", fontsize=14, fontweight="bold")
             # Inner legend removed in favor of figure-level legend below
 
-    fig.supxlabel("Entropy (Decision-making Stability)", fontsize=14)
+    fig.supxlabel("Entropy (Decision-making Stability)", fontsize=14, fontweight="bold")
 
     # 2. Add a legend region below the figure
     # Create custom handles for modes
