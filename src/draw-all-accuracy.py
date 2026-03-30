@@ -102,7 +102,20 @@ def compute_model_to_entropy(result_files, retained_ids_list):
                 entropy_list.append(entropy_value)
 
         mean = np.mean(entropy_list)
-        model_to_entropy[key] = mean
+        n = len(entropy_list)
+        if n > 1:
+            sem = stats.sem(entropy_list)
+            if sem > 0:
+                ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
+            else:
+                ci = (mean, mean)
+        else:
+            ci = (mean, mean)
+
+        model_to_entropy[key] = {
+            "mean": mean,
+            "ci": ci
+        }
 
     return model_to_entropy
 
@@ -153,7 +166,20 @@ def compute_model_to_accuracy(result_files, retained_ids_list):
                 accuracy_list.append(accuracy)
 
         mean = np.mean(accuracy_list)
-        model_to_accuracy[key] = mean
+        n = len(accuracy_list)
+        if n > 1:
+            sem = stats.sem(accuracy_list)
+            if sem > 0:
+                ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
+            else:
+                ci = (mean, mean)
+        else:
+            ci = (mean, mean)
+
+        model_to_accuracy[key] = {
+            "mean": mean,
+            "ci": ci
+        }
 
     return model_to_accuracy
 
@@ -161,15 +187,15 @@ def compute_model_to_accuracy(result_files, retained_ids_list):
 def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models):
     """
     Generates the trajectory plot visualizing the shift in accuracy and entropy
-    from Standard (Disable) to Reasoning mode.
+    from Standard (Disable) to Reasoning mode, including 95% Confidence Intervals.
     """
-    sns.set_theme(style="white") # Switched to basic white to manually control grid
+    sns.set_theme(style="white")
     datasets = list(dataset_to_model_to_entropy.keys())
 
     # Map model names to letters A, B, C...
     model_to_letter = {m: chr(65 + i) for i, m in enumerate(models)}
 
-    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=True, sharex=False)
+    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=False, sharex=False)
 
     std_color = "#4C72B0" # Standard Blue
     rsn_color = "#DD8452" # Reasoning Orange
@@ -188,36 +214,55 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
             if std_key not in dataset_to_model_to_entropy[dataset] or rsn_key not in dataset_to_model_to_entropy[dataset]:
                 continue
 
-            # Extract values (converting accuracy to percentage)
-            ent_std = dataset_to_model_to_entropy[dataset][std_key]
-            acc_std = dataset_to_model_to_accuracy[dataset][std_key] * 100
+            # Extract means and symmetric errors for Standard Mode
+            ent_std_data = dataset_to_model_to_entropy[dataset][std_key]
+            acc_std_data = dataset_to_model_to_accuracy[dataset][std_key]
 
-            ent_rsn = dataset_to_model_to_entropy[dataset][rsn_key]
-            acc_rsn = dataset_to_model_to_accuracy[dataset][rsn_key] * 100
+            ent_std = ent_std_data["mean"]
+            ent_std_err = ent_std - ent_std_data["ci"][0]
 
-            # 1. Draw the vector arrow
+            acc_std = acc_std_data["mean"] * 100
+            acc_std_err = (acc_std_data["mean"] - acc_std_data["ci"][0]) * 100
+
+            # Extract means and symmetric errors for Reasoning Mode
+            ent_rsn_data = dataset_to_model_to_entropy[dataset][rsn_key]
+            acc_rsn_data = dataset_to_model_to_accuracy[dataset][rsn_key]
+
+            ent_rsn = ent_rsn_data["mean"]
+            ent_rsn_err = ent_rsn - ent_rsn_data["ci"][0]
+
+            acc_rsn = acc_rsn_data["mean"] * 100
+            acc_rsn_err = (acc_rsn_data["mean"] - acc_rsn_data["ci"][0]) * 100
+
+            # 1. Plot error bars (drawn first so points stay on top)
+            ax.errorbar(ent_std, acc_std, xerr=ent_std_err, yerr=acc_std_err,
+                        fmt='none', ecolor=std_color, alpha=0.4, capsize=3, zorder=1)
+            ax.errorbar(ent_rsn, acc_rsn, xerr=ent_rsn_err, yerr=acc_rsn_err,
+                        fmt='none', ecolor=rsn_color, alpha=0.4, capsize=3, zorder=1)
+
+            # 2. Draw the vector arrow
             ax.annotate("", xy=(ent_rsn, acc_rsn), xytext=(ent_std, acc_std),
-                        arrowprops=dict(arrowstyle="->", color="gray", lw=1.5, shrinkA=6, shrinkB=6))
+                        arrowprops=dict(arrowstyle="->", color="gray", lw=1.5, shrinkA=6, shrinkB=6),
+                        zorder=2)
 
-            # 2. Plot Standard point
+            # 3. Plot Standard point
             ax.scatter(ent_std, acc_std, color=std_color, s=80, zorder=3)
 
-            # 3. Plot Reasoning point
+            # 4. Plot Reasoning point
             ax.scatter(ent_rsn, acc_rsn, color=rsn_color, s=80, zorder=3)
 
-            # 4. Label the Reasoning point with the corresponding letter
+            # 5. Label the Reasoning point with the corresponding letter
             label = model_to_letter[model]
-            ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=12, ha='center', va='bottom',
+            ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=16, ha='center', va='bottom',
                     fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
-        ax.set_title(dataset.replace("-", " ").title(), fontsize=14, fontweight="bold")
+        ax.set_title(dataset.replace("-", " ").title(), fontsize=16, fontweight="bold")
 
         if i == 0:
-            ax.set_ylabel("Accuracy (%)", fontsize=14, fontweight="bold")
-            # Inner legend removed in favor of figure-level legend below
+            ax.set_ylabel("Accuracy (%)", fontsize=16, fontweight="bold")
 
-    fig.supxlabel("Entropy (Decision-making Stability)", fontsize=14, fontweight="bold")
+    fig.supxlabel("Entropy (Decision-making Stability)", fontsize=16, fontweight="bold")
 
     # 2. Add a legend region below the figure
     # Create custom handles for modes
@@ -238,11 +283,10 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
                bbox_to_anchor=(0.5, -0.15),
                ncol=4,
                frameon=False,
-               fontsize=14)
+               fontsize=16)
 
     plt.tight_layout()
-    # bbox_inches="tight" ensures the legend outside the axes is not cut off
-    plt.savefig("figures/interplay_shift_plot.png", bbox_inches="tight", dpi=150)
+    plt.savefig("figures/interplay_shift_plot_ci.png", bbox_inches="tight", dpi=150)
 
 
 if __name__ == "__main__":
