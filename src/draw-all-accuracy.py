@@ -7,6 +7,7 @@ from scipy.stats import entropy
 from scipy import stats
 import seaborn as sns
 import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 from collections import defaultdict
 
 
@@ -162,7 +163,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     Generates the trajectory plot visualizing the shift in accuracy and entropy
     from Standard (Disable) to Reasoning mode.
     """
-    sns.set_theme(style="whitegrid")
+    sns.set_theme(style="white") # Switched to basic white to manually control grid
     datasets = list(dataset_to_model_to_entropy.keys())
 
     # Map model names to letters A, B, C...
@@ -175,6 +176,9 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
     for i, dataset in enumerate(datasets):
         ax = axes[i]
+
+        # 1. Use dashed-line grid
+        ax.grid(True, linestyle='--', alpha=0.6, zorder=0)
 
         for model in models:
             std_key = f"{model}-Disable"
@@ -196,31 +200,48 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
                         arrowprops=dict(arrowstyle="->", color="gray", lw=1.5, shrinkA=6, shrinkB=6))
 
             # 2. Plot Standard point
-            ax.scatter(ent_std, acc_std, color=std_color, s=80, zorder=3,
-                       label="Standard" if (i==0 and model==models[0]) else "")
+            ax.scatter(ent_std, acc_std, color=std_color, s=80, zorder=3)
 
             # 3. Plot Reasoning point
-            ax.scatter(ent_rsn, acc_rsn, color=rsn_color, s=80, zorder=3,
-                       label="Reasoning" if (i==0 and model==models[0]) else "")
+            ax.scatter(ent_rsn, acc_rsn, color=rsn_color, s=80, zorder=3)
 
             # 4. Label the Reasoning point with the corresponding letter
             label = model_to_letter[model]
             ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=10, ha='center', va='bottom',
-                    fontweight='bold', color="#333333")
+                    fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
         ax.set_title(dataset.replace("-", " ").title(), fontsize=14)
 
-        # [Removed] ax.set_xlabel("Entropy...")
-
         if i == 0:
             ax.set_ylabel("Accuracy (%)", fontsize=14)
-            ax.legend(title="Inference Mode")
+            # Inner legend removed in favor of figure-level legend below
 
-    # [Added] A single, shared X-axis label for the entire figure
-    fig.supxlabel("Entropy (Lower = More Confident)", fontsize=14)
+    fig.supxlabel("Entropy (Decision-making Stability)", fontsize=14)
+
+    # 2. Add a legend region below the figure
+    # Create custom handles for modes
+    mode_handles = [
+        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=std_color, markersize=10, label='Standard Mode'),
+        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=rsn_color, markersize=10, label='Reasoning Mode')
+    ]
+
+    # Create custom handles for models using the letters
+    model_handles = [
+        mlines.Line2D([], [], color='w', marker='', label=f"{model_to_letter[m]}: {m}") for m in models
+    ]
+
+    # Combine handles and plot below the subplots
+    all_handles = mode_handles + model_handles
+    fig.legend(handles=all_handles,
+               loc='lower center',
+               bbox_to_anchor=(0.5, -0.15),
+               ncol=4,
+               frameon=False,
+               fontsize=12)
 
     plt.tight_layout()
+    # bbox_inches="tight" ensures the legend outside the axes is not cut off
     plt.savefig("figures/interplay_shift_plot.png", bbox_inches="tight", dpi=150)
 
 
@@ -298,9 +319,6 @@ if __name__ == "__main__":
             retained_ids_list=retained_ids_list
         )
         dataset_to_model_to_accuracy[dataset_name] = model_to_accuracy
-
-    # print(dataset_to_model_to_entropy)
-    # print(dataset_to_model_to_accuracy)
 
     models = [
         "Qwen3-4B",
