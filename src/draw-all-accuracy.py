@@ -157,6 +157,69 @@ def compute_model_to_accuracy(result_files, retained_ids_list):
     return model_to_accuracy
 
 
+def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models):
+    """
+    Generates the trajectory plot visualizing the shift in accuracy and entropy
+    from Standard (Disable) to Reasoning mode.
+    """
+    sns.set_theme(style="whitegrid")
+    datasets = list(dataset_to_model_to_entropy.keys())
+
+    # Map model names to letters A, B, C...
+    model_to_letter = {m: chr(65 + i) for i, m in enumerate(models)}
+
+    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=True, sharex=True)
+    fig.suptitle("Interplay Shift: How Reasoning Mode alters Accuracy & Entropy", fontsize=16, y=1.05)
+
+    std_color = "#4C72B0" # Standard Blue
+    rsn_color = "#DD8452" # Reasoning Orange
+
+    for i, dataset in enumerate(datasets):
+        ax = axes[i]
+
+        for model in models:
+            std_key = f"{model}-Disable"
+            rsn_key = model
+
+            # Skip if the model data wasn't successfully extracted for this dataset
+            if std_key not in dataset_to_model_to_entropy[dataset] or rsn_key not in dataset_to_model_to_entropy[dataset]:
+                continue
+
+            # Extract values (converting accuracy to percentage)
+            ent_std = dataset_to_model_to_entropy[dataset][std_key]
+            acc_std = dataset_to_model_to_accuracy[dataset][std_key] * 100
+
+            ent_rsn = dataset_to_model_to_entropy[dataset][rsn_key]
+            acc_rsn = dataset_to_model_to_accuracy[dataset][rsn_key] * 100
+
+            # 1. Draw the vector arrow
+            ax.annotate("", xy=(ent_rsn, acc_rsn), xytext=(ent_std, acc_std),
+                        arrowprops=dict(arrowstyle="->", color="gray", lw=1.5, shrinkA=6, shrinkB=6))
+
+            # 2. Plot Standard point
+            ax.scatter(ent_std, acc_std, color=std_color, s=80, zorder=3,
+                       label="Standard" if (i==0 and model==models[0]) else "")
+
+            # 3. Plot Reasoning point
+            ax.scatter(ent_rsn, acc_rsn, color=rsn_color, s=80, zorder=3,
+                       label="Reasoning" if (i==0 and model==models[0]) else "")
+
+            # 4. Label the Reasoning point with the corresponding letter
+            label = model_to_letter[model]
+            ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=10, ha='center', va='bottom',
+                    fontweight='bold', color="#333333")
+
+        # Formatting
+        ax.set_title(dataset.replace("-", " ").title(), fontsize=14)
+        ax.set_xlabel("Entropy (Lower = More Confident)", fontsize=12)
+
+        if i == 0:
+            ax.set_ylabel("Accuracy (%)", fontsize=12)
+            ax.legend(title="Inference Mode")
+
+    plt.tight_layout()
+    plt.savefig("figures/interplay-shift.png", bbox_inches="tight", dpi=150)
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -234,16 +297,17 @@ if __name__ == "__main__":
         )
         dataset_to_model_to_accuracy[dataset_name] = model_to_accuracy
 
-    print(dataset_to_model_to_entropy)
-    print(dataset_to_model_to_accuracy)
+    # print(dataset_to_model_to_entropy)
+    # print(dataset_to_model_to_accuracy)
 
     models = [
         "Qwen3-4B",
         "Qwen3-32B",
         "Qwen3-30B-A3B",
-        "Seed-OSS-36B-Instruct",
+        "Seed-36B",
         "Nemotron-9B",
         "Nemotron-12B",
     ]
 
-    # a suffix of "-Disable" denotes the non-reasoning setting
+    # Generate the visualization
+    plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models)
