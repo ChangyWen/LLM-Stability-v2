@@ -168,8 +168,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     # Map model names to letters A, B, C...
     model_to_letter = {m: chr(65 + i) for i, m in enumerate(models)}
 
-    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=True, sharex=True)
-    fig.suptitle("Interplay Shift: How Reasoning Mode alters Accuracy & Entropy", fontsize=16, y=1.05)
+    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=True, sharex=False)
 
     std_color = "#4C72B0" # Standard Blue
     rsn_color = "#DD8452" # Reasoning Orange
@@ -211,15 +210,18 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
         # Formatting
         ax.set_title(dataset.replace("-", " ").title(), fontsize=14)
-        ax.set_xlabel("Entropy (Lower = More Confident)", fontsize=12)
+
+        # [Removed] ax.set_xlabel("Entropy...")
 
         if i == 0:
-            ax.set_ylabel("Accuracy (%)", fontsize=12)
+            ax.set_ylabel("Accuracy (%)", fontsize=14)
             ax.legend(title="Inference Mode")
 
+    # [Added] A single, shared X-axis label for the entire figure
+    fig.supxlabel("Entropy (Lower = More Confident)", fontsize=14)
+
     plt.tight_layout()
-    plt.savefig("figures/interplay-shift.png", bbox_inches="tight", dpi=150)
-    plt.show()
+    plt.savefig("figures/interplay_shift_plot.png", bbox_inches="tight", dpi=150)
 
 
 if __name__ == "__main__":
