@@ -222,8 +222,8 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     # 2. Add a legend region below the figure
     # Create custom handles for modes
     mode_handles = [
-        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=std_color, markersize=10, label='Standard Mode'),
-        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=rsn_color, markersize=10, label='Reasoning Mode')
+        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=std_color, markersize=10, label='Non-reasoning'),
+        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=rsn_color, markersize=10, label='Reasoning')
     ]
 
     # Create custom handles for models using the letters
