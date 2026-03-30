@@ -207,7 +207,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
             # 4. Label the Reasoning point with the corresponding letter
             label = model_to_letter[model]
-            ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=10, ha='center', va='bottom',
+            ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=12, ha='center', va='bottom',
                     fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
@@ -238,7 +238,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
                bbox_to_anchor=(0.5, -0.15),
                ncol=4,
                frameon=False,
-               fontsize=12)
+               fontsize=14)
 
     plt.tight_layout()
     # bbox_inches="tight" ensures the legend outside the axes is not cut off
