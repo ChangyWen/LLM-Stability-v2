@@ -280,8 +280,8 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     # --- Create Leged ---
     # Legend for Modes (Using neutral gray color to demonstrate just the marker shape)
     mode_handles = [
-        mlines.Line2D([], [], color='gray', marker=std_marker, linestyle='None', markersize=10, label='Without Reasoning'),
-        mlines.Line2D([], [], color='gray', marker=rsn_marker, linestyle='None', markersize=10, label='Reasoning')
+        mlines.Line2D([], [], color='gray', marker=std_marker, linestyle='None', markersize=15, label='Without Reasoning'),
+        mlines.Line2D([], [], color='gray', marker=rsn_marker, linestyle='None', markersize=15, label='Reasoning')
     ]
 
     # Legend for Models (Using a generic square or circle marker to demonstrate just the color)
@@ -295,7 +295,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     }
 
     model_handles = [
-        mlines.Line2D([], [], color=model_to_color[m], marker='s', linestyle='None', markersize=10, label=f"{model_to_name[m]}") for m in models
+        mlines.Line2D([], [], color=model_to_color[m], marker='s', linestyle='None', markersize=15, label=f"{model_to_name[m]}") for m in models
     ]
 
     # Combine handles and plot below the subplots
