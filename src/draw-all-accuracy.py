@@ -184,7 +184,7 @@ def compute_model_to_accuracy(result_files, retained_ids_list):
     return model_to_accuracy
 
 
-def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models):
+def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models, model_to_color):
     """
     Generates the trajectory plot visualizing the shift in accuracy and entropy
     from Standard (Disable) to Reasoning mode, including 95% Confidence Intervals.
@@ -197,13 +197,13 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
     fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=False, sharex=False)
 
-    std_color = "#4C72B0" # Standard Blue
-    rsn_color = "#DD8452" # Reasoning Orange
+    # 1. Define distinct markers for Non-Reasoning and Reasoning
+    std_marker = "o" # Circle for Non-Reasoning
+    rsn_marker = "^" # Triangle for Reasoning
 
     for i, dataset in enumerate(datasets):
         ax = axes[i]
 
-        # 1. Use dashed-line grid
         ax.grid(True, linestyle='--', alpha=0.6, zorder=0)
 
         for model in models:
@@ -213,6 +213,9 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
             # Skip if the model data wasn't successfully extracted for this dataset
             if std_key not in dataset_to_model_to_entropy[dataset] or rsn_key not in dataset_to_model_to_entropy[dataset]:
                 continue
+
+            # Fetch the uniform color for this specific model
+            m_color = model_to_color[model]
 
             # Extract means and symmetric errors for Standard Mode
             ent_std_data = dataset_to_model_to_entropy[dataset][std_key]
@@ -234,27 +237,30 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
             acc_rsn = acc_rsn_data["mean"] * 100
             acc_rsn_err = (acc_rsn_data["mean"] - acc_rsn_data["ci"][0]) * 100
 
-            # 1. Plot error bars (drawn first so points stay on top)
-            ax.errorbar(ent_std, acc_std, xerr=ent_std_err, yerr=acc_std_err,
-                        fmt='none', ecolor=std_color, alpha=0.4, capsize=3, zorder=1)
-            ax.errorbar(ent_rsn, acc_rsn, xerr=ent_rsn_err, yerr=acc_rsn_err,
-                        fmt='none', ecolor=rsn_color, alpha=0.4, capsize=3, zorder=1)
+            # Plot error bars using the assigned model color
+            error_bars1 = ax.errorbar(ent_std, acc_std, xerr=ent_std_err, yerr=acc_std_err,
+                        fmt='none', ecolor=m_color, alpha=1, capsize=3, zorder=1)
+            error_bars2 = ax.errorbar(ent_rsn, acc_rsn, xerr=ent_rsn_err, yerr=acc_rsn_err,
+                        fmt='none', ecolor=m_color, alpha=1, capsize=3, zorder=1)
 
-            # 2. Draw the vector arrow
+            for bar in error_bars1[2] + error_bars2[2]:
+                bar.set_linestyle(':') # or ':' for dotted, '-.' for dash-dot
+
+            # Draw the vector arrow (kept neutral gray to emphasize the shift)
             ax.annotate("", xy=(ent_rsn, acc_rsn), xytext=(ent_std, acc_std),
-                        arrowprops=dict(arrowstyle="->", color="gray", lw=1.5, shrinkA=6, shrinkB=6),
+                        arrowprops=dict(arrowstyle="->", color=m_color, lw=1.5, shrinkA=6, shrinkB=6, mutation_scale=20),
                         zorder=2)
 
-            # 3. Plot Standard point
-            ax.scatter(ent_std, acc_std, color=std_color, s=80, zorder=3)
+            # 2. Plot Standard point (with specific standard marker)
+            ax.scatter(ent_std, acc_std, color=m_color, marker=std_marker, s=110, zorder=3)
 
-            # 4. Plot Reasoning point
-            ax.scatter(ent_rsn, acc_rsn, color=rsn_color, s=80, zorder=3)
+            # 3. Plot Reasoning point (with specific reasoning marker)
+            ax.scatter(ent_rsn, acc_rsn, color=m_color, marker=rsn_marker, s=130, zorder=3)
 
-            # 5. Label the Reasoning point with the corresponding letter
-            label = model_to_letter[model]
-            ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=16, ha='center', va='bottom',
-                    fontweight='bold', color="#333333", zorder=4)
+            # Label the Reasoning point with the corresponding letter
+            # label = model_to_letter[model]
+            # ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=16, ha='center', va='bottom',
+            #         fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
         dataset_name = ""
@@ -271,14 +277,14 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
     fig.supxlabel("Entropy (Decision-making Stability)", fontsize=16, fontweight="bold")
 
-    # 2. Add a legend region below the figure
-    # Create custom handles for modes
+    # --- Create Leged ---
+    # Legend for Modes (Using neutral gray color to demonstrate just the marker shape)
     mode_handles = [
-        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=std_color, markersize=10, label='Without Reasoning'),
-        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=rsn_color, markersize=10, label='Reasoning')
+        mlines.Line2D([], [], color='gray', marker=std_marker, linestyle='None', markersize=10, label='Without Reasoning'),
+        mlines.Line2D([], [], color='gray', marker=rsn_marker, linestyle='None', markersize=10, label='Reasoning')
     ]
 
-    # Create custom handles for models using the letters
+    # Legend for Models (Using a generic square or circle marker to demonstrate just the color)
     model_to_name = {
         "Qwen3-4B": "Qwen3-4B",
         "Qwen3-32B": "Qwen3-32B",
@@ -287,21 +293,53 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
         "Nemotron-9B": "NVIDIA-Nemotron-Nano-9B-v2",
         "Nemotron-12B": "NVIDIA-Nemotron-Nano-12B-v2",
     }
+
     model_handles = [
-        mlines.Line2D([], [], color='w', marker='', label=f"{model_to_letter[m]}: {model_to_name[m]}") for m in models
+        mlines.Line2D([], [], color=model_to_color[m], marker='s', linestyle='None', markersize=10, label=f"{model_to_name[m]}") for m in models
     ]
 
     # Combine handles and plot below the subplots
     all_handles = model_handles + mode_handles
     fig.legend(handles=all_handles,
                loc='lower center',
-               bbox_to_anchor=(0.5, -0.15),
+               bbox_to_anchor=(0.5, -0.15), # Adjusted slightly lower to accommodate multiple rows
                ncol=4,
                frameon=False,
-               fontsize=16)
+               fontsize=14)
 
     plt.tight_layout()
     plt.savefig("figures/interplay_shift_plot_ci.png", bbox_inches="tight", dpi=150)
+
+
+def prepare_model_to_color():
+    # 1. Assign a base sequential palette to each model family.
+    model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
+    family_palettes = {
+        "Qwen": "Blues",
+        "Seed": "mako",
+        "NVIDIA-Nemotron": "Purples"
+    }
+    # 2. Group the exact model labels into their respective families
+    family_groups = defaultdict(list)
+    for model in model_labels:
+        for family in family_palettes.keys():
+            if model.startswith(family):
+                family_groups[family].append(model)
+                break
+    # 3. Generate the model_to_color dictionary
+    model_to_color = {}
+    for family, models in family_groups.items():
+        palette_name = family_palettes[family]
+        # Drop the first shade, which is often too light/white
+        colors = sns.color_palette(palette_name, n_colors=len(models) + 1)[1:]
+        for i, model in enumerate(models):
+            model_to_color[model] = colors[i]
+
+    model_to_color["Seed-36B"] = model_to_color["Seed-OSS-36B-Instruct"]
+    model_to_color["Nemotron-9B"] = model_to_color["NVIDIA-Nemotron-Nano-9B-v2"]
+    model_to_color["Nemotron-12B"] = model_to_color["NVIDIA-Nemotron-Nano-12B-v2"]
+
+    return model_to_color
 
 
 if __name__ == "__main__":
@@ -388,5 +426,7 @@ if __name__ == "__main__":
         "Nemotron-12B",
     ]
 
+    model_to_color = prepare_model_to_color()
+
     # Generate the visualization
-    plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models)
+    plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models, model_to_color)
