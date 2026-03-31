@@ -257,7 +257,14 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
                     fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
-        ax.set_title(dataset.replace("-", " ").title(), fontsize=16, fontweight="bold")
+        dataset_name = ""
+        if dataset == "medmcqa":
+            dataset_name = "MedMCQA"
+        elif dataset == "mmlu-accounting":
+            dataset_name = "MMLU-Accounting"
+        elif dataset == "mmlu-law":
+            dataset_name = "MMLU-Law"
+        ax.set_title(dataset_name, fontsize=16, fontweight="bold")
 
         if i == 0:
             ax.set_ylabel("Accuracy (%)", fontsize=16, fontweight="bold")
@@ -267,17 +274,25 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     # 2. Add a legend region below the figure
     # Create custom handles for modes
     mode_handles = [
-        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=std_color, markersize=10, label='Non-reasoning'),
+        mlines.Line2D([], [], color='w', marker='o', markerfacecolor=std_color, markersize=10, label='Without Reasoning'),
         mlines.Line2D([], [], color='w', marker='o', markerfacecolor=rsn_color, markersize=10, label='Reasoning')
     ]
 
     # Create custom handles for models using the letters
+    model_to_name = {
+        "Qwen3-4B": "Qwen3-4B",
+        "Qwen3-32B": "Qwen3-32B",
+        "Qwen3-30B-A3B": "Qwen3-30B-A3B",
+        "Seed-36B": "Seed-OSS-36B-Instruct",
+        "Nemotron-9B": "NVIDIA-Nemotron-Nano-9B-v2",
+        "Nemotron-12B": "NVIDIA-Nemotron-Nano-12B-v2",
+    }
     model_handles = [
-        mlines.Line2D([], [], color='w', marker='', label=f"{model_to_letter[m]}: {m}") for m in models
+        mlines.Line2D([], [], color='w', marker='', label=f"{model_to_letter[m]}: {model_to_name[m]}") for m in models
     ]
 
     # Combine handles and plot below the subplots
-    all_handles = mode_handles + model_handles
+    all_handles = model_handles + mode_handles
     fig.legend(handles=all_handles,
                loc='lower center',
                bbox_to_anchor=(0.5, -0.15),
