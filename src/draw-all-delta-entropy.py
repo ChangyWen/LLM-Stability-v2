@@ -98,14 +98,14 @@ def get_question_components(file_name, retained_ids, correctness_map):
                 else:
                     wrong_counts.append(count)
 
-            if len(correct_counts) > 1:
+            # if len(correct_counts) > 1:
                 # # check if "mmol/L" in any of the answers
                 # if any("mmol/L" in answer for answer in answer_counts.keys()):
                 #     print(f"idx: {idx}")
                 #     print(json.dumps(answer_counts, indent=4))
                 #     print(json.dumps(cmap, indent=4))
                 #     print("--------------------------------")
-                continue
+                # continue
 
             p_c1 = sum(correct_counts) / total_count
             p_c0 = sum(wrong_counts) / total_count
