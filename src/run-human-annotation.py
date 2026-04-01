@@ -83,7 +83,8 @@ if __name__ == "__main__":
             if key in annotated_keys:
                 continue
 
-            print("\n" + "=" * 100)
+            print("\n" * 4)
+            print("=" * 100)
             print(f"Dataset: {dataset}")
             print("-" * 100)
             print("Question:")
