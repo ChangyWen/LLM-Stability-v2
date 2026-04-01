@@ -237,29 +237,29 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
             acc_rsn = acc_rsn_data["mean"] * 100
             acc_rsn_err = (acc_rsn_data["mean"] - acc_rsn_data["ci"][0]) * 100
 
-            # Plot error bars using the assigned model color
-            error_bars1 = ax.errorbar(ent_std, acc_std, xerr=ent_std_err, yerr=acc_std_err,
+            # Plot error bars using the assigned model color (x=acc, y=ent)
+            error_bars1 = ax.errorbar(acc_std, ent_std, xerr=acc_std_err, yerr=ent_std_err,
                         fmt='none', ecolor=m_color, alpha=1, capsize=3, zorder=1)
-            error_bars2 = ax.errorbar(ent_rsn, acc_rsn, xerr=ent_rsn_err, yerr=acc_rsn_err,
+            error_bars2 = ax.errorbar(acc_rsn, ent_rsn, xerr=acc_rsn_err, yerr=ent_rsn_err,
                         fmt='none', ecolor=m_color, alpha=1, capsize=3, zorder=1)
 
             for bar in error_bars1[2] + error_bars2[2]:
                 bar.set_linestyle(':') # or ':' for dotted, '-.' for dash-dot
 
             # Draw the vector arrow (kept neutral gray to emphasize the shift)
-            ax.annotate("", xy=(ent_rsn, acc_rsn), xytext=(ent_std, acc_std),
+            ax.annotate("", xy=(acc_rsn, ent_rsn), xytext=(acc_std, ent_std),
                         arrowprops=dict(arrowstyle="->", color=m_color, lw=1.5, shrinkA=6, shrinkB=6, mutation_scale=20),
                         zorder=2)
 
             # 2. Plot Standard point (with specific standard marker)
-            ax.scatter(ent_std, acc_std, color=m_color, marker=std_marker, s=110, zorder=3)
+            ax.scatter(acc_std, ent_std, color=m_color, marker=std_marker, s=110, zorder=3)
 
             # 3. Plot Reasoning point (with specific reasoning marker)
-            ax.scatter(ent_rsn, acc_rsn, color=m_color, marker=rsn_marker, s=130, zorder=3)
+            ax.scatter(acc_rsn, ent_rsn, color=m_color, marker=rsn_marker, s=130, zorder=3)
 
-            # Label the Reasoning point with the corresponding letter
+            # Label the Reasoning point with the corresponding letter (Swapped x/y coords)
             # label = model_to_letter[model]
-            # ax.text(ent_rsn, acc_rsn + 1.5, label, fontsize=16, ha='center', va='bottom',
+            # ax.text(acc_rsn, ent_rsn + 0.05, label, fontsize=16, ha='center', va='bottom',
             #         fontweight='bold', color="#333333", zorder=4)
 
         # Formatting
@@ -273,9 +273,9 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
         ax.set_title(dataset_name, fontsize=16, fontweight="bold")
 
         if i == 0:
-            ax.set_ylabel("Accuracy (%)", fontsize=16, fontweight="bold")
+            ax.set_ylabel("Entropy (Decision-making Stability)", fontsize=16, fontweight="bold")
 
-    fig.supxlabel("Entropy (Decision-making Stability)", fontsize=16, fontweight="bold")
+    fig.supxlabel("Accuracy (%)", fontsize=16, fontweight="bold")
 
     # --- Create Leged ---
     # Legend for Modes (Using neutral gray color to demonstrate just the marker shape)
