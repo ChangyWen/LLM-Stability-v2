@@ -11,7 +11,7 @@ def remove_thinking_draft(text):
         text = text.split("</seed:think>")[-1].strip()
         if len(text) > 0:
             return text
-    return text
+    return ""
 
 
 if __name__ == "__main__":
