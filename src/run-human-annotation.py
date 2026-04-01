@@ -2,8 +2,8 @@ import json
 import os
 
 
-INPUT_PATH = "outputs/data_for_human_annotation.jsonl"
-OUTPUT_PATH = "outputs/human_annotation_labels.jsonl"
+INPUT_PATH = "./data_for_human_annotation.jsonl"
+OUTPUT_PATH = "./human_annotation_labels.jsonl"
 
 
 def load_annotated_keys(output_path):
@@ -60,8 +60,9 @@ if __name__ == "__main__":
     annotated_keys = load_annotated_keys(OUTPUT_PATH)
     num_new_annotations = 0
 
-    with open(INPUT_PATH, "r", encoding="utf-8") as fin, \
-         open(OUTPUT_PATH, "a", encoding="utf-8") as fout:
+    with open(INPUT_PATH, "r", encoding="utf-8") as fin:
+        all_data = []
+        remaining_count = 0
 
         for line in fin:
             line = line.strip()
@@ -69,7 +70,21 @@ if __name__ == "__main__":
                 continue
 
             data = json.loads(line)
+            all_data.append(data)
 
+            key = (
+                data["dataset"],
+                data["idx"],
+                data["uuid"],
+                data["inner_idx"],
+            )
+            if key not in annotated_keys:
+                remaining_count += 1
+
+    print(f"Remaining labeling tasks: {remaining_count}")
+
+    with open(OUTPUT_PATH, "a", encoding="utf-8") as fout:
+        for data in all_data:
             dataset = data["dataset"]
             idx = data["idx"]
             uuid = data["uuid"]
