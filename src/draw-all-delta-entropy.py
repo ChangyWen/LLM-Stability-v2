@@ -7,6 +7,7 @@ from scipy.stats import entropy
 import matplotlib.patches as mpatches
 from collections import defaultdict
 
+
 def get_retained_keys(result_files, dataset_name):
     # Same as your original logic
     retained_ids_list = []
@@ -26,6 +27,7 @@ def get_retained_keys(result_files, dataset_name):
             retained_ids_list.append(idx_set)
     return set.intersection(*retained_ids_list)
 
+
 def file_name_to_key(file_name):
     if "Seed-OSS-36B-Instruct" in file_name and ("dt" not in file_name): return "Seed-36B"
     elif "Seed-OSS-36B-Instruct" in file_name and ("dt" in file_name): return "Seed-36B-Disable"
@@ -41,21 +43,13 @@ def file_name_to_key(file_name):
     elif "NVIDIA-Nemotron-Nano-12B-v2" in file_name and ("dt" in file_name): return "Nemotron-12B-Disable"
     else: assert False, f"Unknown file name: {file_name}"
 
-def compute_model_entropy_components(result_files, retained_ids_list):
-    """
-    Computes the decomposed entropy components for each model/mode:
-    1. H(C) : Entropy of the binary correctness variable
-    2. P(C=0)H(Y|C=0) : Entropy of the incorrect answers weighted by error rate
-    """
-    model_to_components = {}
 
-    for i, file_name in enumerate(result_files):
-        key = file_name_to_key(file_name)
-        retained_ids = retained_ids_list[i]
-
-        # 1. Load correctness map for this file
-        uuid_to_answer_to_correctness = {}
-        with open(file_name.replace("_counts.jsonl", "_correctness-vllm.jsonl"), "r") as f:
+def load_correctness_map(file_name, retained_ids):
+    """Helper to load the correctness map for a specific file."""
+    uuid_to_answer_to_correctness = {}
+    corr_file = file_name.replace("_counts.jsonl", "_correctness-vllm.jsonl")
+    try:
+        with open(corr_file, "r") as f:
             for line in f:
                 item = json.loads(line)
                 idx = item["idx"]
@@ -67,62 +61,104 @@ def compute_model_entropy_components(result_files, retained_ids_list):
 
                 if uuid not in uuid_to_answer_to_correctness:
                     uuid_to_answer_to_correctness[uuid] = {}
-                if correctness is None:
-                    continue
-                uuid_to_answer_to_correctness[uuid][answer] = correctness.strip().upper() == "TRUE"
+                if correctness is not None:
+                    uuid_to_answer_to_correctness[uuid][answer] = correctness.strip().upper() == "TRUE"
+    except FileNotFoundError:
+        pass
+    return uuid_to_answer_to_correctness
 
-        # 2. Compute components for each question
-        h_c_list = []
-        h_y_given_c0_weighted_list = []
 
-        with open(file_name, "r") as f:
-            for line in f:
-                item = json.loads(line)
-                idx = item["idx"]
-                if idx not in retained_ids:
-                    continue
-                uuid = item["uuid"]
-                answer_counts = item["answer_counts"]
+def get_question_components(file_name, retained_ids, correctness_map):
+    """Calculates H(C) and P(C=0)H(Y|C=0) for each question in a single file."""
+    idx_to_components = {}
+    with open(file_name, "r") as f:
+        for line in f:
+            item = json.loads(line)
+            idx = item["idx"]
+            if idx not in retained_ids:
+                continue
 
-                if uuid not in uuid_to_answer_to_correctness:
-                    continue
-                correctness_map = uuid_to_answer_to_correctness[uuid]
+            uuid = item["uuid"]
+            answer_counts = item["answer_counts"]
 
-                total_count = sum(answer_counts.values())
-                if total_count == 0:
-                    continue
+            if uuid not in correctness_map:
+                continue
+            cmap = correctness_map[uuid]
 
-                correct_count = 0
-                wrong_counts = []
+            total_count = sum(answer_counts.values())
+            if total_count == 0:
+                continue
 
-                for answer, count in answer_counts.items():
-                    if answer in correctness_map and correctness_map[answer]:
-                        correct_count += count
-                    else:
-                        wrong_counts.append(count)
+            correct_count = 0
+            wrong_counts = []
 
-                p_c1 = correct_count / total_count
-                p_c0 = 1.0 - p_c1
-
-                # Component 1: H(C)
-                h_c = entropy([p_c1, p_c0]) if 0 < p_c1 < 1 else 0.0
-                h_c_list.append(h_c)
-
-                # Component 2: P(C=0) * H(Y|C=0)
-                if p_c0 > 0 and sum(wrong_counts) > 0:
-                    wrong_dist = [c / sum(wrong_counts) for c in wrong_counts]
-                    h_y_c0 = entropy(wrong_dist)
-                    h_y_given_c0_weighted_list.append(p_c0 * h_y_c0)
+            for answer, count in answer_counts.items():
+                if answer in cmap and cmap[answer]:
+                    correct_count += count
                 else:
-                    h_y_given_c0_weighted_list.append(0.0)
+                    wrong_counts.append(count)
 
-        # Average across all valid questions
-        model_to_components[key] = {
-            "h_c_mean": np.mean(h_c_list),
-            "h_y_given_c0_weighted_mean": np.mean(h_y_given_c0_weighted_list)
+            p_c1 = correct_count / total_count
+            p_c0 = 1.0 - p_c1
+
+            h_c = entropy([p_c1, p_c0]) if 0 < p_c1 < 1 else 0.0
+
+            if p_c0 > 0 and sum(wrong_counts) > 0:
+                wrong_dist = [c / sum(wrong_counts) for c in wrong_counts]
+                h_y_c0 = entropy(wrong_dist)
+                h_y_c0_weighted = p_c0 * h_y_c0
+            else:
+                h_y_c0_weighted = 0.0
+
+            idx_to_components[idx] = {
+                "h_c": h_c,
+                "h_y_c0_weighted": h_y_c0_weighted
+            }
+    return idx_to_components
+
+
+def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
+    """
+    1. Computes components per question for Standard mode.
+    2. Computes components per question for Reasoning mode.
+    3. Calculates the delta (Standard - Reasoning) for EACH question.
+    4. Returns the average of those paired deltas.
+    """
+    # Load correctness maps
+    std_cmap = load_correctness_map(std_file, retained_ids)
+    rsn_cmap = load_correctness_map(rsn_file, retained_ids)
+
+    # Get components per question index
+    std_components = get_question_components(std_file, retained_ids, std_cmap)
+    rsn_components = get_question_components(rsn_file, retained_ids, rsn_cmap)
+
+    delta_h_c_list = []
+    delta_beyond_list = []
+
+    # Calculate paired deltas for questions that exist in both sets
+    common_idx = set(std_components.keys()).intersection(set(rsn_components.keys()))
+
+    for idx in common_idx:
+        std_vals = std_components[idx]
+        rsn_vals = rsn_components[idx]
+
+        # Delta = Non-Reasoning - Reasoning (Positive = Stability Gained)
+        d_h_c = std_vals["h_c"] - rsn_vals["h_c"]
+        d_beyond = std_vals["h_y_c0_weighted"] - rsn_vals["h_y_c0_weighted"]
+
+        delta_h_c_list.append(d_h_c)
+        delta_beyond_list.append(d_beyond)
+
+    return {
+        "delta_h_c_mean": np.mean(delta_h_c_list) if delta_h_c_list else 0.0,
+        "delta_beyond_mean": np.mean(delta_beyond_list) if delta_beyond_list else 0.0,
+        # You now have access to the raw lists if you ever need to calculate p-values!
+        "raw_deltas": {
+            "h_c": delta_h_c_list,
+            "beyond": delta_beyond_list
         }
+    }
 
-    return model_to_components
 
 def prepare_model_to_color():
     model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
@@ -147,14 +183,13 @@ def prepare_model_to_color():
     return model_to_color
 
 
-def plot_delta_decomposition(dataset_to_model_components, models, model_to_color):
-    """
-    Plots the stacked bar charts showing the decomposition of \Delta H(Y).
-    Delta is defined as (Non-Reasoning - Reasoning) so that positive values
-    represent a reduction in entropy (a gain in stability).
-    """
+def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import matplotlib.patches as mpatches
+
     sns.set_theme(style="whitegrid")
-    datasets = list(dataset_to_model_components.keys())
+    datasets = list(dataset_to_model_deltas.keys())
 
     fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=True)
     x_positions = np.arange(len(models))
@@ -162,36 +197,26 @@ def plot_delta_decomposition(dataset_to_model_components, models, model_to_color
 
     for i, dataset in enumerate(datasets):
         ax = axes[i]
-
         dataset_name = {"medmcqa": "MedMCQA", "mmlu-accounting": "MMLU-Accounting", "mmlu-law": "MMLU-Law"}.get(dataset, dataset)
         ax.set_title(dataset_name, fontsize=16, fontweight="bold")
 
-        # Draw a bold zero line
         ax.axhline(0, color='black', linewidth=1.5, zorder=3)
         ax.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
 
         for j, model in enumerate(models):
-            std_key = f"{model}-Disable"
-            rsn_key = model
-
-            if std_key not in dataset_to_model_components[dataset] or rsn_key not in dataset_to_model_components[dataset]:
+            if model not in dataset_to_model_deltas[dataset]:
                 continue
 
-            std_comp = dataset_to_model_components[dataset][std_key]
-            rsn_comp = dataset_to_model_components[dataset][rsn_key]
-
-            # Calculate Deltas: Non-Reasoning (std) - Reasoning (rsn)
-            # A positive delta means entropy went down (stability improved)
-            delta_h_c = std_comp["h_c_mean"] - rsn_comp["h_c_mean"]
-            delta_beyond = std_comp["h_y_given_c0_weighted_mean"] - rsn_comp["h_y_given_c0_weighted_mean"]
-
+            deltas = dataset_to_model_deltas[dataset][model]
+            delta_h_c = deltas["delta_h_c_mean"]
+            delta_beyond = deltas["delta_beyond_mean"]
             m_color = model_to_color[model]
 
-            # Bar 1: delta_h_c (Accuracy-related reduction) - Neutral Grey
+            # Bar 1: Accuracy-related reduction
             ax.bar(x_positions[j], delta_h_c, width=bar_width, color='#D3D3D3',
                    edgecolor='#A9A9A9', linewidth=1, zorder=2)
 
-            # Bar 2: delta_beyond (Beyond-accuracy reduction) - Model specific color, stacked
+            # Bar 2: Beyond-accuracy reduction
             ax.bar(x_positions[j], delta_beyond, width=bar_width, bottom=delta_h_c,
                    color=m_color, edgecolor='white', linewidth=0.5, zorder=2)
 
@@ -200,54 +225,85 @@ def plot_delta_decomposition(dataset_to_model_components, models, model_to_color
         ax.tick_params(axis='y', labelsize=12)
 
         if i == 0:
-            ax.set_ylabel(r"$\Delta$ Entropy", fontsize=16, fontweight="bold")
+            ax.set_ylabel(r"Entropy Reduction ($\Delta$ Entropy)", fontsize=16, fontweight="bold")
 
-    # Custom Legends reflecting the new positive framing
     acc_patch = mpatches.Patch(color='#D3D3D3', ec='#A9A9A9', label=r'Accuracy-driven reduction: $\Delta H(C)$')
     beyond_patch = mpatches.Patch(facecolor='#4A4A4A', label=r'Beyond-accuracy reduction: $\Delta [ P(C=0)H(Y|C=0) ]$')
 
-    fig.legend(handles=[acc_patch, beyond_patch],
-               loc='lower center',
-               bbox_to_anchor=(0.5, -0.2),
-               ncol=2,
-               frameon=False,
-               fontsize=14)
-
+    fig.legend(handles=[acc_patch, beyond_patch], loc='lower center', bbox_to_anchor=(0.5, -0.2), ncol=2, frameon=False, fontsize=14)
     plt.tight_layout()
     plt.savefig("figures/delta_entropy_decomposition.png", bbox_inches="tight", dpi=150)
 
 
 if __name__ == "__main__":
     datasets = ["medmcqa", "mmlu-accounting", "mmlu-law"]
-    dataset_to_model_components = {}
+
+    # Map each model key to its (Standard/Disable File, Reasoning File) tuple
+    model_to_files = {
+        "Qwen3-4B": (
+            "Qwen3-4B_temp0.6_n50_dt_counts.jsonl",
+            "Qwen3-4B_temp0.6_n50_counts.jsonl"
+        ),
+        "Qwen3-32B": (
+            "Qwen3-32B_temp0.6_n50_dt_counts.jsonl",
+            "Qwen3-32B_temp0.6_n50_counts.jsonl"
+        ),
+        "Qwen3-30B-A3B": (
+            "Qwen3-30B-A3B_temp0.6_n50_dt_counts.jsonl",
+            "Qwen3-30B-A3B_temp0.6_n50_counts.jsonl"
+        ),
+        "Seed-36B": (
+            "Seed-OSS-36B-Instruct_temp1.1_n50_dt_counts.jsonl",
+            "Seed-OSS-36B-Instruct_temp1.1_n50_counts.jsonl"
+        ),
+        "Nemotron-9B": (
+            "NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt_counts.jsonl",
+            "NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_counts.jsonl"
+        ),
+        "Nemotron-12B": (
+            "NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt_counts.jsonl",
+            "NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_counts.jsonl"
+        ),
+    }
+
+    dataset_to_model_deltas = {}
 
     for dataset_name in datasets:
-        # Re-using your exact file listing and extraction logic
-        result_files = [
-            f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50_dt_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Qwen3-4B_temp0.6_n50_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Qwen3-32B_temp0.6_n50_dt_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Qwen3-32B_temp0.6_n50_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Qwen3-30B-A3B_temp0.6_n50_dt_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Qwen3-30B-A3B_temp0.6_n50_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_dt_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/Seed-OSS-36B-Instruct_temp1.1_n50_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt_counts.jsonl",
-            f"outputs/{dataset_name}/processed_results/NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_counts.jsonl",
-        ]
+        model_deltas = {}
 
-        # Get retained IDs exactly like the original code
-        retained_ids_list = [get_retained_keys(result_files[i:i+2], dataset_name) for i in range(0, len(result_files), 2)]
-        flattened_retained_ids = [ids for ids in retained_ids_list for _ in range(2)]
+        for model_key, (std_filename, rsn_filename) in model_to_files.items():
+            std_file = f"outputs/{dataset_name}/processed_results/{std_filename}"
+            rsn_file = f"outputs/{dataset_name}/processed_results/{rsn_filename}"
 
-        # Compute the specific mathematical components
-        model_components = compute_model_entropy_components(result_files, flattened_retained_ids)
-        dataset_to_model_components[dataset_name] = model_components
+            try:
+                # 1. Get the questions that meet the >35 response threshold for BOTH modes
+                retained_ids = get_retained_keys([std_file, rsn_file], dataset_name)
 
-    models = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-36B", "Nemotron-9B", "Nemotron-12B"]
+                # 2. Compute the paired deltas for this specific model on this dataset
+                deltas = compute_paired_deltas_per_model(std_file, rsn_file, retained_ids)
+
+                # 3. Store the results
+                model_deltas[model_key] = deltas
+
+            except FileNotFoundError:
+                print(f"Warning: Missing files for {model_key} on {dataset_name}. Skipping.")
+                continue
+
+        dataset_to_model_deltas[dataset_name] = model_deltas
+
+    # Define the order of models for the x-axis
+    models = [
+        "Qwen3-4B",
+        "Qwen3-32B",
+        "Qwen3-30B-A3B",
+        "Seed-36B",
+        "Nemotron-9B",
+        "Nemotron-12B"
+    ]
+
+    # Generate colors using your existing function
     model_to_color = prepare_model_to_color()
 
     # Generate the decomposed stacked bar chart
-    plot_delta_decomposition(dataset_to_model_components, models, model_to_color)
+    plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color)
+    print("Plot successfully saved to figures/delta_entropy_decomposition.png")
