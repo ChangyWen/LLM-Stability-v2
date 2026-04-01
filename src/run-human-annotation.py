@@ -122,17 +122,24 @@ if __name__ == "__main__":
             if key in annotated_keys:
                 continue
 
+            BOLD = "\033[1m"
+            CYAN = "\033[96m"
+            BLUE = "\033[94m"
+            GREEN = "\033[92m"
+            YELLOW = "\033[93m"
+            RESET = "\033[0m"
+
             print("\n" * 4)
             print("=" * 100)
-            print(f"Dataset: {dataset}")
+            print(f"{BOLD}{YELLOW}Dataset:{RESET} {dataset}")
             print("-" * 100)
-            print("Question:")
+            print(f"{BOLD}{CYAN}Question:{RESET}")
             print(question)
             print("-" * 100)
-            print("Response:")
+            print(f"{BOLD}{BLUE}Response:{RESET}")
             print(response)
             print("-" * 100)
-            print("Extracted answer:")
+            print(f"{BOLD}{GREEN}Extracted answer:{RESET}")
             print(extracted_answer)
             print("=" * 100)
 
