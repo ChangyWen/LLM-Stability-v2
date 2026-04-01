@@ -36,6 +36,23 @@ def load_annotated_keys(output_path):
     return annotated
 
 
+def confirm_start(remaining_count):
+    """
+    Ask the annotator whether to start labeling.
+    Returns True if confirmed, otherwise False.
+    """
+    print(f"Remaining labeling tasks: {remaining_count}")
+
+    while True:
+        user_input = input("Start labeling now? [y/n]: ").strip().lower()
+        if user_input in {"y", "yes"}:
+            return True
+        elif user_input in {"n", "no"}:
+            return False
+        else:
+            print("Invalid input. Please enter y or n.")
+
+
 def ask_for_label():
     """
     Prompt the annotator for a label.
@@ -81,7 +98,14 @@ if __name__ == "__main__":
             if key not in annotated_keys:
                 remaining_count += 1
 
-    print(f"Remaining labeling tasks: {remaining_count}")
+    if remaining_count == 0:
+        print("Remaining labeling tasks: 0")
+        print("No unlabeled tasks left.")
+        exit(0)
+
+    if not confirm_start(remaining_count):
+        print("Labeling cancelled.")
+        exit(0)
 
     with open(OUTPUT_PATH, "a", encoding="utf-8") as fout:
         for data in all_data:
