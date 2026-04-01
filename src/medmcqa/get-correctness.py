@@ -17,7 +17,7 @@ def extract_from_tags(text, tag):
     return None
 
 
-def complete(prompt, reasoning_effort_or_thinking_budget="high"):
+def complete(prompt, reasoning_effort_or_thinking_budget="low"):
     response = chat(
         max_retry=1,
         prompt=prompt,

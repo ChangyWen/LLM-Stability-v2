@@ -89,26 +89,53 @@ def get_question_components(file_name, retained_ids, correctness_map):
             if total_count == 0:
                 continue
 
-            correct_count = 0
+            correct_counts = []
             wrong_counts = []
 
             for answer, count in answer_counts.items():
                 if answer in cmap and cmap[answer]:
-                    correct_count += count
+                    correct_counts.append(count)
                 else:
                     wrong_counts.append(count)
 
-            p_c1 = correct_count / total_count
-            p_c0 = 1.0 - p_c1
+            if len(correct_counts) > 1:
+                # # check if "mmol/L" in any of the answers
+                # if any("mmol/L" in answer for answer in answer_counts.keys()):
+                #     print(f"idx: {idx}")
+                #     print(json.dumps(answer_counts, indent=4))
+                #     print(json.dumps(cmap, indent=4))
+                #     print("--------------------------------")
+                continue
 
+            p_c1 = sum(correct_counts) / total_count
+            p_c0 = sum(wrong_counts) / total_count
+
+            # 1. Component: H(C)
             h_c = entropy([p_c1, p_c0]) if 0 < p_c1 < 1 else 0.0
 
+            # 2. Component: P(C=0) * H(Y|C=0)
             if p_c0 > 0 and sum(wrong_counts) > 0:
                 wrong_dist = [c / sum(wrong_counts) for c in wrong_counts]
-                h_y_c0 = entropy(wrong_dist)
-                h_y_c0_weighted = p_c0 * h_y_c0
+                h_y_c0_weighted = p_c0 * entropy(wrong_dist)
             else:
                 h_y_c0_weighted = 0.0
+
+            # 3. Component: P(C=1) * H(Y|C=1)
+            # (Usually 0, but calculated safely in case multiple distinct strings evaluate to True)
+            if p_c1 > 0 and sum(correct_counts) > 0:
+                correct_dist = [c / sum(correct_counts) for c in correct_counts]
+                h_y_c1_weighted = p_c1 * entropy(correct_dist)
+            else:
+                h_y_c1_weighted = 0.0
+
+            # Mathematical reconstruction based on the Entropy Chain Rule
+            calculated_h_y = h_c + h_y_c0_weighted + h_y_c1_weighted
+
+            all_dist = [c / total_count for c in answer_counts.values()]
+            h_y_total = entropy(all_dist)
+
+            assert math.isclose(h_y_total, calculated_h_y, abs_tol=1e-7), \
+                f"Entropy verification failed! Direct H(Y): {h_y_total}, Decomposed: {calculated_h_y}"
 
             idx_to_components[idx] = {
                 "h_c": h_c,
@@ -184,24 +211,44 @@ def prepare_model_to_color():
 
 
 def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    import matplotlib.patches as mpatches
+    # Apply the target style parameters
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 11,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
 
-    sns.set_theme(style="whitegrid")
     datasets = list(dataset_to_model_deltas.keys())
 
-    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=True)
+    fig, axes = plt.subplots(1, len(datasets), figsize=(16, 5), sharey=True, dpi=1024)
     x_positions = np.arange(len(models))
-    bar_width = 0.55
+    bar_width = 0.7
+
+    dataset_name_to_title = {
+        "medmcqa": r"Medicine ($\it{MedMCQA}$)",
+        "mmlu-accounting": r"Finance ($\it{MMLU\!-\!Accounting}$)",
+        "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
+    }
 
     for i, dataset in enumerate(datasets):
         ax = axes[i]
-        dataset_name = {"medmcqa": "MedMCQA", "mmlu-accounting": "MMLU-Accounting", "mmlu-law": "MMLU-Law"}.get(dataset, dataset)
-        ax.set_title(dataset_name, fontsize=16, fontweight="bold")
 
-        ax.axhline(0, color='black', linewidth=1.5, zorder=3)
-        ax.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
+        # Style Title
+        title = dataset_name_to_title.get(dataset, dataset)
+        ax.set_title(title, pad=10, weight="bold")
+
+        # Style Grid and Spines
+        ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
+        ax.set_axisbelow(True)
+        for spine in ["top", "right"]:
+            ax.spines[spine].set_visible(False)
+
+        # Bold zero line
+        ax.axhline(0, color='black', linewidth=1.2, zorder=3)
 
         for j, model in enumerate(models):
             if model not in dataset_to_model_deltas[dataset]:
@@ -213,26 +260,45 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
             m_color = model_to_color[model]
 
             # Bar 1: Accuracy-related reduction
-            ax.bar(x_positions[j], delta_h_c, width=bar_width, color='#D3D3D3',
-                   edgecolor='#A9A9A9', linewidth=1, zorder=2)
+            # Applied: edgecolor="black", linewidth=0.6, alpha=1.0
+            ax.bar(x_positions[j], delta_h_c, width=bar_width, color='#E0E0E0',
+                   edgecolor="black", linewidth=0.6, zorder=4)
 
             # Bar 2: Beyond-accuracy reduction
             ax.bar(x_positions[j], delta_beyond, width=bar_width, bottom=delta_h_c,
-                   color=m_color, edgecolor='white', linewidth=0.5, zorder=2)
+                   color=m_color, edgecolor="black", linewidth=0.6, zorder=4)
 
+        # Style X-ticks
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(models, rotation=45, ha='right', fontsize=12)
-        ax.tick_params(axis='y', labelsize=12)
+        ax.set_xticklabels(models, rotation=45, ha='right')
+        ax.tick_params(axis="x", length=0, pad=6) # Removing tick marks, matching pad=6
 
         if i == 0:
-            ax.set_ylabel(r"Entropy Reduction ($\Delta$ Entropy)", fontsize=16, fontweight="bold")
+            ax.set_ylabel(r"Entropy Reduction ($\Delta$ Entropy)", fontsize=12, fontweight="bold")
 
-    acc_patch = mpatches.Patch(color='#D3D3D3', ec='#A9A9A9', label=r'Accuracy-driven reduction: $\Delta H(C)$')
-    beyond_patch = mpatches.Patch(facecolor='#4A4A4A', label=r'Beyond-accuracy reduction: $\Delta [ P(C=0)H(Y|C=0) ]$')
+    # Custom Legends matching the styling conventions
+    acc_patch = mpatches.Patch(
+        facecolor='#E0E0E0', edgecolor='black', linewidth=0.6,
+        label=r'Accuracy-driven reduction: $\Delta H(C)$'
+    )
+    beyond_patch = mpatches.Patch(
+        facecolor='#4A4A4A', edgecolor='black', linewidth=0.6,
+        label=r'Beyond-accuracy reduction: $\Delta [ P(C=0)H(Y|C=0) ]$'
+    )
 
-    fig.legend(handles=[acc_patch, beyond_patch], loc='lower center', bbox_to_anchor=(0.5, -0.2), ncol=2, frameon=False, fontsize=14)
+    fig.legend(handles=[acc_patch, beyond_patch],
+               loc='lower center',
+               bbox_to_anchor=(0.5, -0.22),
+               ncol=2,
+               frameon=False,
+               fontsize=12,
+               handlelength=1.6,
+               columnspacing=2.0,
+               handletextpad=0.5)
+
     plt.tight_layout()
-    plt.savefig("figures/delta_entropy_decomposition.png", bbox_inches="tight", dpi=150)
+    plt.savefig("figures/delta_entropy_decomposition.png", bbox_inches="tight")
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -290,6 +356,10 @@ if __name__ == "__main__":
                 continue
 
         dataset_to_model_deltas[dataset_name] = model_deltas
+
+    for dataset_name, model_deltas in dataset_to_model_deltas.items():
+        for model_key, deltas in model_deltas.items():
+            print(f"{dataset_name} {model_key} {deltas['delta_h_c_mean']} {deltas['delta_beyond_mean']}")
 
     # Define the order of models for the x-axis
     models = [
