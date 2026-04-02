@@ -47,7 +47,7 @@ def file_name_to_key(file_name):
 def load_correctness_map(file_name, retained_ids):
     """Helper to load the correctness map for a specific file."""
     uuid_to_answer_to_correctness = {}
-    corr_file = file_name.replace("_counts.jsonl", "_correctness-vllm.jsonl")
+    corr_file = file_name.replace("_counts.jsonl", "_correctness-vllm-v2.jsonl")
     try:
         with open(corr_file, "r") as f:
             for line in f:
@@ -69,7 +69,7 @@ def load_correctness_map(file_name, retained_ids):
 
 
 def get_question_components(file_name, retained_ids, correctness_map):
-    """Calculates H(C) and P(C=0)H(Y|C=0) for each question in a single file."""
+    """Calculates H(C), P(C=0)H(Y|C=0), and P(C=1)H(Y|C=1) for each question in a single file."""
     idx_to_components = {}
     with open(file_name, "r") as f:
         for line in f:
@@ -97,15 +97,6 @@ def get_question_components(file_name, retained_ids, correctness_map):
                     correct_counts.append(count)
                 else:
                     wrong_counts.append(count)
-
-            # if len(correct_counts) > 1:
-                # # check if "mmol/L" in any of the answers
-                # if any("mmol/L" in answer for answer in answer_counts.keys()):
-                #     print(f"idx: {idx}")
-                #     print(json.dumps(answer_counts, indent=4))
-                #     print(json.dumps(cmap, indent=4))
-                #     print("--------------------------------")
-                # continue
 
             p_c1 = sum(correct_counts) / total_count
             p_c0 = sum(wrong_counts) / total_count
@@ -139,6 +130,7 @@ def get_question_components(file_name, retained_ids, correctness_map):
 
             idx_to_components[idx] = {
                 "h_c": h_c,
+                "h_y_c1_weighted": h_y_c1_weighted,
                 "h_y_c0_weighted": h_y_c0_weighted
             }
     return idx_to_components

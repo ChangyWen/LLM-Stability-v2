@@ -429,4 +429,5 @@ if __name__ == "__main__":
     model_to_color = prepare_model_to_color()
 
     # Generate the visualization
+    print(json.dumps(dataset_to_model_to_accuracy, indent=4))
     plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accuracy, models, model_to_color)
