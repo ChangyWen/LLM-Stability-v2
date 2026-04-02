@@ -9,7 +9,6 @@ from collections import defaultdict
 
 
 def get_retained_keys(result_files, dataset_name):
-    # Same as your original logic
     retained_ids_list = []
     for file_name in result_files:
         with open(file_name, "r") as f:
@@ -45,7 +44,6 @@ def file_name_to_key(file_name):
 
 
 def load_correctness_map(file_name, retained_ids):
-    """Helper to load the correctness map for a specific file."""
     uuid_to_answer_to_correctness = {}
     corr_file = file_name.replace("_counts.jsonl", "_correctness-vllm-v2.jsonl")
     try:
@@ -69,7 +67,7 @@ def load_correctness_map(file_name, retained_ids):
 
 
 def get_question_components(file_name, retained_ids, correctness_map):
-    """Calculates the part of incorrect entropy, P(C=0)H(Y|C=0), and the total entropy for each question in a single file."""
+    """Calculates pure unweighted H(Y|C=0) for each question."""
     idx_to_components = {}
     with open(file_name, "r") as f:
         for line in f:
@@ -90,33 +88,28 @@ def get_question_components(file_name, retained_ids, correctness_map):
                 continue
 
             wrong_counts = []
-
             for answer, count in answer_counts.items():
                 if answer in cmap and (not cmap[answer]):
                     wrong_counts.append(count)
 
             p_c0 = sum(wrong_counts) / total_count
 
-            # 2. Component: P(C=0) * H(Y|C=0)
+            # Calculate the pure unweighted structural entropy of the errors
             if p_c0 > 0 and sum(wrong_counts) > 0:
                 wrong_dist = [c / sum(wrong_counts) for c in wrong_counts]
-                h_y_c0_weighted = p_c0 * entropy(wrong_dist)
+                h_y_c0_unweighted = entropy(wrong_dist)
             else:
-                h_y_c0_weighted = 0.0
-
-            all_dist = [c / total_count for c in answer_counts.values()]
-            h_y_total = entropy(all_dist)
+                h_y_c0_unweighted = None # Undefined if there are no errors
 
             idx_to_components[idx] = {
-                "h_y_total": h_y_total,
-                "h_y_c0_weighted": h_y_c0_weighted
+                "h_y_c0_unweighted": h_y_c0_unweighted
             }
     return idx_to_components
 
 
 def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
     """
-    Computes components per question and returns the paired deltas.
+    Computes the delta of the pure unweighted error-path entropy.
     """
     std_cmap = load_correctness_map(std_file, retained_ids)
     rsn_cmap = load_correctness_map(rsn_file, retained_ids)
@@ -124,8 +117,7 @@ def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
     std_components = get_question_components(std_file, retained_ids, std_cmap)
     rsn_components = get_question_components(rsn_file, retained_ids, rsn_cmap)
 
-    delta_h_y_total_list = []
-    delta_beyond_list = []
+    delta_unweighted_list = []
 
     common_idx = set(std_components.keys()).intersection(set(rsn_components.keys()))
 
@@ -133,16 +125,15 @@ def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
         std_vals = std_components[idx]
         rsn_vals = rsn_components[idx]
 
-        # Delta = Non-Reasoning - Reasoning (Positive = Stability Gained)
-        d_h_y_total = std_vals["h_y_total"] - rsn_vals["h_y_total"]
-        d_beyond = std_vals["h_y_c0_weighted"] - rsn_vals["h_y_c0_weighted"]
-
-        delta_h_y_total_list.append(d_h_y_total)
-        delta_beyond_list.append(d_beyond)
+        # CRITICAL FILTER: Only compute delta if BOTH modes made an error on this specific question
+        if std_vals["h_y_c0_unweighted"] is not None and rsn_vals["h_y_c0_unweighted"] is not None:
+            # Positive value = Stability gained (Entropy reduced)
+            d_unweighted = std_vals["h_y_c0_unweighted"] - rsn_vals["h_y_c0_unweighted"]
+            delta_unweighted_list.append(d_unweighted)
 
     return {
-        "delta_h_y_total_mean": np.mean(delta_h_y_total_list) if delta_h_y_total_list else 0.0,
-        "delta_beyond_mean": np.mean(delta_beyond_list) if delta_beyond_list else 0.0
+        "delta_unweighted_mean": np.mean(delta_unweighted_list) if delta_unweighted_list else 0.0,
+        "valid_pairs_count": len(delta_unweighted_list)
     }
 
 
@@ -169,7 +160,7 @@ def prepare_model_to_color():
     return model_to_color
 
 
-def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
+def plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color):
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -184,7 +175,7 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
 
     fig, axes = plt.subplots(1, len(datasets), figsize=(16, 5), sharey=True, dpi=1024)
     x_positions = np.arange(len(models))
-    bar_width = 0.7
+    bar_width = 0.6
 
     dataset_name_to_title = {
         "medmcqa": r"Medicine ($\it{MedMCQA}$)",
@@ -209,86 +200,35 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
                 continue
 
             deltas = dataset_to_model_deltas[dataset][model]
-            delta_total = deltas["delta_h_y_total_mean"]
-            delta_beyond = deltas["delta_beyond_mean"]
-
-            # The remaining portion of the total reduction is driven by accuracy shifts
-            # and other factors. (Total = Beyond + Rest)
-            delta_rest = delta_total - delta_beyond
-
+            delta_unweighted = deltas["delta_unweighted_mean"]
             m_color = model_to_color[model]
 
-            # Bar 1 (Bottom): Beyond-accuracy reduction (Colored + Hatched)
-            ax.bar(x_positions[j], delta_beyond, width=bar_width, color=m_color,
+            # Single bar for pure structural reduction
+            ax.bar(x_positions[j], delta_unweighted, width=bar_width, color=m_color,
                    edgecolor="black", linewidth=0.6, hatch='xx', zorder=4)
 
-            # Bar 2 (Stacked on Top): Remaining reduction (Colored + Solid)
-            ax.bar(x_positions[j], delta_rest, width=bar_width, bottom=delta_beyond,
-                   color=m_color, edgecolor="black", linewidth=0.6, zorder=4)
-
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(models, rotation=45, ha='right')
+        ax.set_xticklabels(models, rotation=45, ha='center')
         ax.tick_params(axis="x", length=0, pad=6)
 
         if i == 0:
-            ax.set_ylabel(r"Total Entropy Reduction ($\Delta H(Y)$)", fontsize=12, fontweight="bold")
-
-    # Legend
-    # Use a neutral light grey facecolor in the legend so the concept is universal,
-    # and the hatch pattern is clearly visible.
-    beyond_patch = mpatches.Patch(
-        facecolor='#D3D3D3', edgecolor='black', linewidth=0.6, hatch='xx',
-        label=r'Beyond-accuracy reduction: $\Delta [ P(C=0)H(Y|C=0) ]$'
-    )
-    acc_patch = mpatches.Patch(
-        facecolor='#D3D3D3', edgecolor='black', linewidth=0.6,
-        label=r'Remaining reduction'
-    )
-
-    fig.legend(handles=[beyond_patch, acc_patch],
-               loc='lower center',
-               bbox_to_anchor=(0.5, -0.22),
-               ncol=2,
-               frameon=False,
-               fontsize=12,
-               handlelength=1.6,
-               columnspacing=2.0,
-               handletextpad=0.5)
+            ax.set_ylabel(r"Conditional Entropy Reduction ($\Delta H(Y|C=0)$)", fontsize=12, fontweight="bold")
 
     plt.tight_layout()
-    plt.savefig("figures/delta_entropy_decomposition.png", bbox_inches="tight")
+    plt.savefig("figures/delta_unweighted_entropy.png", bbox_inches="tight")
     plt.close()
 
 
 if __name__ == "__main__":
     datasets = ["medmcqa", "mmlu-accounting", "mmlu-law"]
 
-    # Map each model key to its (Standard/Disable File, Reasoning File) tuple
     model_to_files = {
-        "Qwen3-4B": (
-            "Qwen3-4B_temp0.6_n50_dt_counts.jsonl",
-            "Qwen3-4B_temp0.6_n50_counts.jsonl"
-        ),
-        "Qwen3-32B": (
-            "Qwen3-32B_temp0.6_n50_dt_counts.jsonl",
-            "Qwen3-32B_temp0.6_n50_counts.jsonl"
-        ),
-        "Qwen3-30B-A3B": (
-            "Qwen3-30B-A3B_temp0.6_n50_dt_counts.jsonl",
-            "Qwen3-30B-A3B_temp0.6_n50_counts.jsonl"
-        ),
-        "Seed-36B": (
-            "Seed-OSS-36B-Instruct_temp1.1_n50_dt_counts.jsonl",
-            "Seed-OSS-36B-Instruct_temp1.1_n50_counts.jsonl"
-        ),
-        "Nemotron-9B": (
-            "NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt_counts.jsonl",
-            "NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_counts.jsonl"
-        ),
-        "Nemotron-12B": (
-            "NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt_counts.jsonl",
-            "NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_counts.jsonl"
-        ),
+        "Qwen3-4B": ("Qwen3-4B_temp0.6_n50_dt_counts.jsonl", "Qwen3-4B_temp0.6_n50_counts.jsonl"),
+        "Qwen3-32B": ("Qwen3-32B_temp0.6_n50_dt_counts.jsonl", "Qwen3-32B_temp0.6_n50_counts.jsonl"),
+        "Qwen3-30B-A3B": ("Qwen3-30B-A3B_temp0.6_n50_dt_counts.jsonl", "Qwen3-30B-A3B_temp0.6_n50_counts.jsonl"),
+        "Seed-36B": ("Seed-OSS-36B-Instruct_temp1.1_n50_dt_counts.jsonl", "Seed-OSS-36B-Instruct_temp1.1_n50_counts.jsonl"),
+        "Nemotron-9B": ("NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt_counts.jsonl", "NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_counts.jsonl"),
+        "Nemotron-12B": ("NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt_counts.jsonl", "NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_counts.jsonl"),
     }
 
     dataset_to_model_deltas = {}
@@ -301,15 +241,9 @@ if __name__ == "__main__":
             rsn_file = f"outputs/{dataset_name}/processed_results/{rsn_filename}"
 
             try:
-                # 1. Get the questions that meet the >35 response threshold for BOTH modes
                 retained_ids = get_retained_keys([std_file, rsn_file], dataset_name)
-
-                # 2. Compute the paired deltas for this specific model on this dataset
                 deltas = compute_paired_deltas_per_model(std_file, rsn_file, retained_ids)
-
-                # 3. Store the results
                 model_deltas[model_key] = deltas
-
             except FileNotFoundError:
                 print(f"Warning: Missing files for {model_key} on {dataset_name}. Skipping.")
                 continue
@@ -318,21 +252,14 @@ if __name__ == "__main__":
 
     for dataset_name, model_deltas in dataset_to_model_deltas.items():
         for model_key, deltas in model_deltas.items():
-            print(f"{dataset_name} {model_key} {deltas['delta_h_y_total_mean']} {deltas['delta_beyond_mean']}")
+            print(f"{dataset_name} {model_key} | Pure Delta: {deltas['delta_unweighted_mean']:.4f} (over {deltas['valid_pairs_count']} paired error questions)")
 
-    # Define the order of models for the x-axis
     models = [
-        "Qwen3-4B",
-        "Qwen3-32B",
-        "Qwen3-30B-A3B",
-        "Seed-36B",
-        "Nemotron-9B",
-        "Nemotron-12B"
+        "Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B",
+        "Seed-36B", "Nemotron-9B", "Nemotron-12B"
     ]
 
-    # Generate colors using your existing function
     model_to_color = prepare_model_to_color()
 
-    # Generate the decomposed stacked bar chart
-    plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color)
-    print("Plot successfully saved to figures/delta_entropy_decomposition.png")
+    plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color)
+    print("Plot successfully saved to figures/delta_unweighted_entropy.png")
