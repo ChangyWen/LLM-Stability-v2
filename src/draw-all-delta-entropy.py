@@ -232,7 +232,7 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
 
     # --- Global X-Axis Label ---
     # Centered horizontally across the entire figure
-    fig.supxlabel(r"Pure Error-Path Entropy $H(Y|C=0)$", fontsize=12, fontweight="bold")
+    fig.supxlabel(r"Conditional (Error-Path) Entropy $H(Y|C=0)$", fontsize=12, fontweight="bold", y=0.05)
 
     # --- Clean Legend ---
     std_patch = mlines.Line2D([], [], color='white', marker='o', markerfacecolor='#A0A0A0',
@@ -243,7 +243,7 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
     # Lowered bbox_to_anchor to ensure it sits safely below the supxlabel
     fig.legend(handles=[std_patch, rsn_patch],
                loc='lower center',
-               bbox_to_anchor=(0.5, -0.15),
+               bbox_to_anchor=(0.5, -0.1),
                ncol=2,
                frameon=False,
                fontsize=12,
@@ -251,7 +251,7 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
                columnspacing=3.0)
 
     # Expanded bottom rect from 0.05 to 0.12 to give breathing room for both supxlabel and legend
-    plt.tight_layout(rect=[0, 0.12, 1, 1])
+    plt.tight_layout(rect=[0, 0.03, 1, 1])
     plt.savefig("figures/delta_unweighted_entropy_dumbbell.png", bbox_inches="tight")
     plt.close()
 
