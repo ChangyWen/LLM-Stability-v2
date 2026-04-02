@@ -25,9 +25,9 @@ code:
 
 target:
   service: sing
-  # name: Ranking
+  name: Ranking
   # name: Recall
-  name: Feeds
+  # name: Feeds
   # name: msrresrchvc
   # name: msrresrchbasicvc
   # name: Recall
@@ -46,8 +46,8 @@ jobs:
   # sku: G8-H100
   sku: G8-A100
   # sku: G4-A100
-  sla_tier: Standard
-  # sla_tier: Premium
+  # sla_tier: Standard
+  sla_tier: Premium
   command:
     ########### medmcqa ###########
     # - python src/medmcqa/run-vllm.py --model_name Qwen/Qwen3-4B --temperature 0.6
@@ -602,6 +602,10 @@ jobs:
     # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-9B-v2_temp0.6_n50_dt
     # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50
     # - python src/mmlu-law/get-correctness-vllm.py --file_name NVIDIA-Nemotron-Nano-12B-v2_temp0.6_n50_dt
+    ################ accuracy through vllm-v2 ################
+    - python src/medmcqa/get-correctness-vllm.py
+    # - python src/mmlu-accounting/get-correctness-vllm.py
+    # - python src/mmlu-law/get-correctness-vllm.py
   submit_args:
     env:
       {

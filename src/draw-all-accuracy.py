@@ -129,7 +129,7 @@ def compute_model_to_accuracy(result_files, retained_ids_list):
         accuracy_list = []
 
         uuid_to_answer_to_correctness = {}
-        with open(file_name.replace("_counts.jsonl", "_correctness-vllm.jsonl"), "r") as f:
+        with open(file_name.replace("_counts.jsonl", "_correctness-vllm-v2.jsonl"), "r") as f:
             for line in f:
                 item = json.loads(line)
                 idx = item["idx"]
