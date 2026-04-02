@@ -242,7 +242,7 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
     )
     acc_patch = mpatches.Patch(
         facecolor='#D3D3D3', edgecolor='black', linewidth=0.6,
-        label=r'Remaining reduction (incl. Accuracy shift)'
+        label=r'Remaining reduction'
     )
 
     fig.legend(handles=[beyond_patch, acc_patch],
