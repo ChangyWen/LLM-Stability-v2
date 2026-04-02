@@ -163,7 +163,7 @@ def prepare_model_to_color():
 
 
 def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
-    import matplotlib.lines as mlines # Ensure this is imported
+    import matplotlib.lines as mlines
 
     plt.rcParams.update({
         "font.size": 11,
@@ -214,14 +214,14 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
             rsn_val = deltas["rsn_unweighted_mean"]
             m_color = model_to_color[model]
 
-            # 1. Connecting Line
-            ax.plot([std_val, rsn_val], [j, j], color="#CCCCCC", linewidth=3.5, zorder=1)
+            # 1. Connecting Line (Colored matching the model, slightly transparent)
+            ax.plot([std_val, rsn_val], [j, j], color=m_color, linewidth=3.5, alpha=0.3, zorder=1)
 
-            # 2. Standard Dot (Grey)
-            ax.scatter(std_val, j, color="#A0A0A0", edgecolor="white", linewidth=0.8, s=150, zorder=2)
+            # 2. Standard Dot (Model Color, 'X' marker for "Without Reasoning")
+            ax.scatter(std_val, j, color=m_color, marker="X", edgecolor="black", linewidth=0.8, s=150, zorder=2)
 
-            # 3. Reasoning Dot (Model Color)
-            ax.scatter(rsn_val, j, color=m_color, edgecolor="black", linewidth=0.8, s=150, zorder=3)
+            # 3. Reasoning Dot (Model Color, 'o' marker for "With Reasoning")
+            ax.scatter(rsn_val, j, color=m_color, marker="o", edgecolor="black", linewidth=0.8, s=150, zorder=3)
 
         # Apply y-labels only to the first panel
         if i == 0:
@@ -231,27 +231,25 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
             ax.invert_yaxis()
 
     # --- Global X-Axis Label ---
-    # Centered horizontally across the entire figure
     fig.supxlabel(r"Conditional (Error-Path) Entropy $H(Y|C=0)$", fontsize=12, fontweight="bold", y=0.05)
 
     # --- Clean Legend ---
-    std_patch = mlines.Line2D([], [], color='white', marker='o', markerfacecolor='#A0A0A0',
+    # Using a neutral dark grey (#4A4A4A) in the legend to emphasize that SHAPE defines the state.
+    std_patch = mlines.Line2D([], [], color='white', marker='X', markerfacecolor='#4A4A4A',
                               markeredgecolor='white', markersize=12, label='Without Reasoning')
     rsn_patch = mlines.Line2D([], [], color='white', marker='o', markerfacecolor='#4A4A4A',
                               markeredgecolor='black', markersize=12, label='With Reasoning')
 
-    # Lowered bbox_to_anchor to ensure it sits safely below the supxlabel
-    fig.legend(handles=[std_patch, rsn_patch],
+    fig.legend(handles=[rsn_patch, std_patch],
                loc='lower center',
-               bbox_to_anchor=(0.5, -0.1),
+               bbox_to_anchor=(0.5, -0.08),
                ncol=2,
                frameon=False,
                fontsize=12,
                handletextpad=0.5,
                columnspacing=3.0)
 
-    # Expanded bottom rect from 0.05 to 0.12 to give breathing room for both supxlabel and legend
-    plt.tight_layout(rect=[0, 0.03, 1, 1])
+    plt.tight_layout(rect=[0, 0.02, 1, 1])
     plt.savefig("figures/delta_unweighted_entropy_dumbbell.png", bbox_inches="tight")
     plt.close()
 
