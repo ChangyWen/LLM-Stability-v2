@@ -69,7 +69,7 @@ def load_correctness_map(file_name, retained_ids):
 
 
 def get_question_components(file_name, retained_ids, correctness_map):
-    """Calculates H(C), P(C=0)H(Y|C=0), and P(C=1)H(Y|C=1) for each question in a single file."""
+    """Calculates the part of incorrect entropy, P(C=0)H(Y|C=0), and the total entropy for each question in a single file."""
     idx_to_components = {}
     with open(file_name, "r") as f:
         for line in f:
@@ -89,20 +89,13 @@ def get_question_components(file_name, retained_ids, correctness_map):
             if total_count == 0:
                 continue
 
-            correct_counts = []
             wrong_counts = []
 
             for answer, count in answer_counts.items():
-                if answer in cmap and cmap[answer]:
-                    correct_counts.append(count)
-                else:
+                if answer in cmap and (not cmap[answer]):
                     wrong_counts.append(count)
 
-            p_c1 = sum(correct_counts) / total_count
             p_c0 = sum(wrong_counts) / total_count
-
-            # 1. Component: H(C)
-            h_c = entropy([p_c1, p_c0]) if 0 < p_c1 < 1 else 0.0
 
             # 2. Component: P(C=0) * H(Y|C=0)
             if p_c0 > 0 and sum(wrong_counts) > 0:
@@ -111,26 +104,11 @@ def get_question_components(file_name, retained_ids, correctness_map):
             else:
                 h_y_c0_weighted = 0.0
 
-            # 3. Component: P(C=1) * H(Y|C=1)
-            # (Usually 0, but calculated safely in case multiple distinct strings evaluate to True)
-            if p_c1 > 0 and sum(correct_counts) > 0:
-                correct_dist = [c / sum(correct_counts) for c in correct_counts]
-                h_y_c1_weighted = p_c1 * entropy(correct_dist)
-            else:
-                h_y_c1_weighted = 0.0
-
-            # Mathematical reconstruction based on the Entropy Chain Rule
-            calculated_h_y = h_c + h_y_c0_weighted + h_y_c1_weighted
-
             all_dist = [c / total_count for c in answer_counts.values()]
             h_y_total = entropy(all_dist)
 
-            assert math.isclose(h_y_total, calculated_h_y, abs_tol=1e-7), \
-                f"Entropy verification failed! Direct H(Y): {h_y_total}, Decomposed: {calculated_h_y}"
-
             idx_to_components[idx] = {
-                "h_c": h_c,
-                "h_y_c1_weighted": h_y_c1_weighted,
+                "h_y_total": h_y_total,
                 "h_y_c0_weighted": h_y_c0_weighted
             }
     return idx_to_components
@@ -138,23 +116,17 @@ def get_question_components(file_name, retained_ids, correctness_map):
 
 def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
     """
-    1. Computes components per question for Standard mode.
-    2. Computes components per question for Reasoning mode.
-    3. Calculates the delta (Standard - Reasoning) for EACH question.
-    4. Returns the average of those paired deltas.
+    Computes components per question and returns the paired deltas.
     """
-    # Load correctness maps
     std_cmap = load_correctness_map(std_file, retained_ids)
     rsn_cmap = load_correctness_map(rsn_file, retained_ids)
 
-    # Get components per question index
     std_components = get_question_components(std_file, retained_ids, std_cmap)
     rsn_components = get_question_components(rsn_file, retained_ids, rsn_cmap)
 
-    delta_h_c_list = []
+    delta_h_y_total_list = []
     delta_beyond_list = []
 
-    # Calculate paired deltas for questions that exist in both sets
     common_idx = set(std_components.keys()).intersection(set(rsn_components.keys()))
 
     for idx in common_idx:
@@ -162,20 +134,15 @@ def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
         rsn_vals = rsn_components[idx]
 
         # Delta = Non-Reasoning - Reasoning (Positive = Stability Gained)
-        d_h_c = std_vals["h_c"] - rsn_vals["h_c"]
+        d_h_y_total = std_vals["h_y_total"] - rsn_vals["h_y_total"]
         d_beyond = std_vals["h_y_c0_weighted"] - rsn_vals["h_y_c0_weighted"]
 
-        delta_h_c_list.append(d_h_c)
+        delta_h_y_total_list.append(d_h_y_total)
         delta_beyond_list.append(d_beyond)
 
     return {
-        "delta_h_c_mean": np.mean(delta_h_c_list) if delta_h_c_list else 0.0,
-        "delta_beyond_mean": np.mean(delta_beyond_list) if delta_beyond_list else 0.0,
-        # You now have access to the raw lists if you ever need to calculate p-values!
-        "raw_deltas": {
-            "h_c": delta_h_c_list,
-            "beyond": delta_beyond_list
-        }
+        "delta_h_y_total_mean": np.mean(delta_h_y_total_list) if delta_h_y_total_list else 0.0,
+        "delta_beyond_mean": np.mean(delta_beyond_list) if delta_beyond_list else 0.0
     }
 
 
@@ -203,7 +170,6 @@ def prepare_model_to_color():
 
 
 def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
-    # Apply the target style parameters
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -228,18 +194,14 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
 
     for i, dataset in enumerate(datasets):
         ax = axes[i]
-
-        # Style Title
         title = dataset_name_to_title.get(dataset, dataset)
         ax.set_title(title, pad=10, weight="bold")
 
-        # Style Grid and Spines
         ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
         ax.set_axisbelow(True)
         for spine in ["top", "right"]:
             ax.spines[spine].set_visible(False)
 
-        # Bold zero line
         ax.axhline(0, color='black', linewidth=1.2, zorder=3)
 
         for j, model in enumerate(models):
@@ -247,38 +209,41 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
                 continue
 
             deltas = dataset_to_model_deltas[dataset][model]
-            delta_h_c = deltas["delta_h_c_mean"]
+            delta_total = deltas["delta_h_y_total_mean"]
             delta_beyond = deltas["delta_beyond_mean"]
+
+            # The remaining portion of the total reduction is driven by accuracy shifts
+            # and other factors. (Total = Beyond + Rest)
+            delta_rest = delta_total - delta_beyond
+
             m_color = model_to_color[model]
 
-            # Bar 1: Accuracy-related reduction
-            # Applied: edgecolor="black", linewidth=0.6, alpha=1.0
-            ax.bar(x_positions[j], delta_h_c, width=bar_width, color='#E0E0E0',
+            # Bar 1 (Bottom): Beyond-accuracy reduction (Colored)
+            ax.bar(x_positions[j], delta_beyond, width=bar_width, color=m_color,
                    edgecolor="black", linewidth=0.6, zorder=4)
 
-            # Bar 2: Beyond-accuracy reduction
-            ax.bar(x_positions[j], delta_beyond, width=bar_width, bottom=delta_h_c,
-                   color=m_color, edgecolor="black", linewidth=0.6, zorder=4)
+            # Bar 2 (Stacked on Top): Remaining reduction (Grey)
+            ax.bar(x_positions[j], delta_rest, width=bar_width, bottom=delta_beyond,
+                   color='#E0E0E0', edgecolor="black", linewidth=0.6, zorder=4)
 
-        # Style X-ticks
         ax.set_xticks(x_positions)
         ax.set_xticklabels(models, rotation=45, ha='right')
-        ax.tick_params(axis="x", length=0, pad=6) # Removing tick marks, matching pad=6
+        ax.tick_params(axis="x", length=0, pad=6)
 
         if i == 0:
-            ax.set_ylabel(r"Entropy Reduction ($\Delta$ Entropy)", fontsize=12, fontweight="bold")
+            ax.set_ylabel(r"Total Entropy Reduction ($\Delta H(Y)$)", fontsize=12, fontweight="bold")
 
-    # Custom Legends matching the styling conventions
-    acc_patch = mpatches.Patch(
-        facecolor='#E0E0E0', edgecolor='black', linewidth=0.6,
-        label=r'Accuracy-driven reduction: $\Delta H(C)$'
-    )
+    # Legend
     beyond_patch = mpatches.Patch(
         facecolor='#4A4A4A', edgecolor='black', linewidth=0.6,
         label=r'Beyond-accuracy reduction: $\Delta [ P(C=0)H(Y|C=0) ]$'
     )
+    acc_patch = mpatches.Patch(
+        facecolor='#E0E0E0', edgecolor='black', linewidth=0.6,
+        label=r'Remaining reduction (incl. Accuracy shift)'
+    )
 
-    fig.legend(handles=[acc_patch, beyond_patch],
+    fig.legend(handles=[beyond_patch, acc_patch],
                loc='lower center',
                bbox_to_anchor=(0.5, -0.22),
                ncol=2,
@@ -351,7 +316,7 @@ if __name__ == "__main__":
 
     for dataset_name, model_deltas in dataset_to_model_deltas.items():
         for model_key, deltas in model_deltas.items():
-            print(f"{dataset_name} {model_key} {deltas['delta_h_c_mean']} {deltas['delta_beyond_mean']}")
+            print(f"{dataset_name} {model_key} {deltas['delta_h_y_total_mean']} {deltas['delta_beyond_mean']}")
 
     # Define the order of models for the x-axis
     models = [
