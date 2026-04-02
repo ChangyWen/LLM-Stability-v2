@@ -205,16 +205,48 @@ def plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color):
 
             # Single bar for pure structural reduction
             ax.bar(x_positions[j], delta_unweighted, width=bar_width, color=m_color,
-                   edgecolor="black", linewidth=0.6, hatch='xx', zorder=4)
+                   edgecolor="black", linewidth=0.6, zorder=4)
 
+        # Keep the ticks but remove the text labels
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(models, rotation=45, ha='center')
-        ax.tick_params(axis="x", length=0, pad=6)
+        ax.set_xticklabels([])
+        ax.tick_params(axis="x", length=0, pad=0)
 
         if i == 0:
             ax.set_ylabel(r"Conditional Entropy Reduction ($\Delta H(Y|C=0)$)", fontsize=12, fontweight="bold")
 
-    plt.tight_layout()
+    # --- Create the Shared Legend ---
+    # Map the model names to slightly cleaner display labels if desired
+    display_names = {
+        "Qwen3-4B": "Qwen3-4B",
+        "Qwen3-32B": "Qwen3-32B",
+        "Qwen3-30B-A3B": "Qwen3-30B-A3B",
+        "Seed-36B": "Seed-OSS-36B-Instruct",
+        "Nemotron-9B": "NVIDIA-Nemotron-Nano-9B-v2",
+        "Nemotron-12B": "NVIDIA-Nemotron-Nano-12B-v2"
+    }
+
+    model_handles = [
+        mpatches.Patch(
+            facecolor=model_to_color[m],
+            edgecolor='black',
+            linewidth=0.6,
+            label=display_names[m]
+        ) for m in models
+    ]
+
+    # Place the legend centrally below the subplots
+    fig.legend(handles=model_handles,
+               loc='lower center',
+               bbox_to_anchor=(0.5, -0.15),
+               ncol=3, # 3 columns x 2 rows creates a very neat layout
+               frameon=False,
+               fontsize=12,
+               handlelength=1.5,
+               columnspacing=2.0)
+
+    # Leave a bit of space at the bottom for the legend
+    plt.tight_layout(rect=[0, 0.05, 1, 1])
     plt.savefig("figures/delta_unweighted_entropy.png", bbox_inches="tight")
     plt.close()
 
