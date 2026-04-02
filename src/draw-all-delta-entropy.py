@@ -218,13 +218,13 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
 
             m_color = model_to_color[model]
 
-            # Bar 1 (Bottom): Beyond-accuracy reduction (Colored)
+            # Bar 1 (Bottom): Beyond-accuracy reduction (Colored + Hatched)
             ax.bar(x_positions[j], delta_beyond, width=bar_width, color=m_color,
-                   edgecolor="black", linewidth=0.6, zorder=4)
+                   edgecolor="black", linewidth=0.6, hatch='xx', zorder=4)
 
-            # Bar 2 (Stacked on Top): Remaining reduction (Grey)
+            # Bar 2 (Stacked on Top): Remaining reduction (Colored + Solid)
             ax.bar(x_positions[j], delta_rest, width=bar_width, bottom=delta_beyond,
-                   color='#E0E0E0', edgecolor="black", linewidth=0.6, zorder=4)
+                   color=m_color, edgecolor="black", linewidth=0.6, zorder=4)
 
         ax.set_xticks(x_positions)
         ax.set_xticklabels(models, rotation=45, ha='right')
@@ -234,12 +234,14 @@ def plot_delta_decomposition(dataset_to_model_deltas, models, model_to_color):
             ax.set_ylabel(r"Total Entropy Reduction ($\Delta H(Y)$)", fontsize=12, fontweight="bold")
 
     # Legend
+    # Use a neutral light grey facecolor in the legend so the concept is universal,
+    # and the hatch pattern is clearly visible.
     beyond_patch = mpatches.Patch(
-        facecolor='#4A4A4A', edgecolor='black', linewidth=0.6,
+        facecolor='#D3D3D3', edgecolor='black', linewidth=0.6, hatch='xx',
         label=r'Beyond-accuracy reduction: $\Delta [ P(C=0)H(Y|C=0) ]$'
     )
     acc_patch = mpatches.Patch(
-        facecolor='#E0E0E0', edgecolor='black', linewidth=0.6,
+        facecolor='#D3D3D3', edgecolor='black', linewidth=0.6,
         label=r'Remaining reduction (incl. Accuracy shift)'
     )
 
