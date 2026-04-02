@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import entropy
 import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 from collections import defaultdict
 
 
@@ -67,7 +68,6 @@ def load_correctness_map(file_name, retained_ids):
 
 
 def get_question_components(file_name, retained_ids, correctness_map):
-    """Calculates pure unweighted H(Y|C=0) for each question."""
     idx_to_components = {}
     with open(file_name, "r") as f:
         for line in f:
@@ -94,12 +94,11 @@ def get_question_components(file_name, retained_ids, correctness_map):
 
             p_c0 = sum(wrong_counts) / total_count
 
-            # Calculate the pure unweighted structural entropy of the errors
             if p_c0 > 0 and sum(wrong_counts) > 0:
                 wrong_dist = [c / sum(wrong_counts) for c in wrong_counts]
                 h_y_c0_unweighted = entropy(wrong_dist)
             else:
-                h_y_c0_unweighted = None # Undefined if there are no errors
+                h_y_c0_unweighted = None
 
             idx_to_components[idx] = {
                 "h_y_c0_unweighted": h_y_c0_unweighted
@@ -109,7 +108,7 @@ def get_question_components(file_name, retained_ids, correctness_map):
 
 def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
     """
-    Computes the delta of the pure unweighted error-path entropy.
+    Computes both the absolute means and the delta of the pure unweighted error-path entropy.
     """
     std_cmap = load_correctness_map(std_file, retained_ids)
     rsn_cmap = load_correctness_map(rsn_file, retained_ids)
@@ -117,7 +116,8 @@ def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
     std_components = get_question_components(std_file, retained_ids, std_cmap)
     rsn_components = get_question_components(rsn_file, retained_ids, rsn_cmap)
 
-    delta_unweighted_list = []
+    std_unweighted_list = []
+    rsn_unweighted_list = []
 
     common_idx = set(std_components.keys()).intersection(set(rsn_components.keys()))
 
@@ -125,15 +125,17 @@ def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
         std_vals = std_components[idx]
         rsn_vals = rsn_components[idx]
 
-        # CRITICAL FILTER: Only compute delta if BOTH modes made an error on this specific question
         if std_vals["h_y_c0_unweighted"] is not None and rsn_vals["h_y_c0_unweighted"] is not None:
-            # Positive value = Stability gained (Entropy reduced)
-            d_unweighted = std_vals["h_y_c0_unweighted"] - rsn_vals["h_y_c0_unweighted"]
-            delta_unweighted_list.append(d_unweighted)
+            std_unweighted_list.append(std_vals["h_y_c0_unweighted"])
+            rsn_unweighted_list.append(rsn_vals["h_y_c0_unweighted"])
+
+    delta_unweighted_list = np.array(std_unweighted_list) - np.array(rsn_unweighted_list) if std_unweighted_list else []
 
     return {
-        "delta_unweighted_mean": np.mean(delta_unweighted_list) if delta_unweighted_list else 0.0,
-        "valid_pairs_count": len(delta_unweighted_list)
+        "std_unweighted_mean": np.mean(std_unweighted_list) if std_unweighted_list else 0.0,
+        "rsn_unweighted_mean": np.mean(rsn_unweighted_list) if rsn_unweighted_list else 0.0,
+        "delta_unweighted_mean": np.mean(delta_unweighted_list) if len(delta_unweighted_list) > 0 else 0.0,
+        "valid_pairs_count": len(std_unweighted_list)
     }
 
 
@@ -160,13 +162,15 @@ def prepare_model_to_color():
     return model_to_color
 
 
-def plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color):
+def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
+    import matplotlib.lines as mlines # Ensure this is imported
+
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
         "axes.labelsize": 11,
         "xtick.labelsize": 11,
-        "ytick.labelsize": 10,
+        "ytick.labelsize": 11,
         "axes.edgecolor": "gray",
         "axes.linewidth": 0.8,
     })
@@ -174,8 +178,7 @@ def plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color):
     datasets = list(dataset_to_model_deltas.keys())
 
     fig, axes = plt.subplots(1, len(datasets), figsize=(16, 5), sharey=True, dpi=1024)
-    x_positions = np.arange(len(models))
-    bar_width = 0.6
+    y_positions = np.arange(len(models))
 
     dataset_name_to_title = {
         "medmcqa": r"Medicine ($\it{MedMCQA}$)",
@@ -183,40 +186,6 @@ def plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color):
         "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
     }
 
-    for i, dataset in enumerate(datasets):
-        ax = axes[i]
-        title = dataset_name_to_title.get(dataset, dataset)
-        ax.set_title(title, pad=10, weight="bold")
-
-        ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
-        ax.set_axisbelow(True)
-        for spine in ["top", "right"]:
-            ax.spines[spine].set_visible(False)
-
-        ax.axhline(0, color='black', linewidth=1.2, zorder=3)
-
-        for j, model in enumerate(models):
-            if model not in dataset_to_model_deltas[dataset]:
-                continue
-
-            deltas = dataset_to_model_deltas[dataset][model]
-            delta_unweighted = deltas["delta_unweighted_mean"]
-            m_color = model_to_color[model]
-
-            # Single bar for pure structural reduction
-            ax.bar(x_positions[j], delta_unweighted, width=bar_width, color=m_color,
-                   edgecolor="black", linewidth=0.6, zorder=4)
-
-        # Keep the ticks but remove the text labels
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels([])
-        ax.tick_params(axis="x", length=0, pad=0)
-
-        if i == 0:
-            ax.set_ylabel(r"Conditional Entropy Reduction ($\Delta H(Y|C=0)$)", fontsize=12, fontweight="bold")
-
-    # --- Create the Shared Legend ---
-    # Map the model names to slightly cleaner display labels if desired
     display_names = {
         "Qwen3-4B": "Qwen3-4B",
         "Qwen3-32B": "Qwen3-32B",
@@ -226,28 +195,64 @@ def plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color):
         "Nemotron-12B": "NVIDIA-Nemotron-Nano-12B-v2"
     }
 
-    model_handles = [
-        mpatches.Patch(
-            facecolor=model_to_color[m],
-            edgecolor='black',
-            linewidth=0.6,
-            label=display_names[m]
-        ) for m in models
-    ]
+    for i, dataset in enumerate(datasets):
+        ax = axes[i]
+        title = dataset_name_to_title.get(dataset, dataset)
+        ax.set_title(title, pad=10, weight="bold")
 
-    # Place the legend centrally below the subplots
-    fig.legend(handles=model_handles,
+        ax.grid(axis="x", linestyle="--", linewidth=0.7, alpha=0.6, zorder=0)
+        ax.set_axisbelow(True)
+        for spine in ["top", "right"]:
+            ax.spines[spine].set_visible(False)
+
+        for j, model in enumerate(models):
+            if model not in dataset_to_model_deltas[dataset]:
+                continue
+
+            deltas = dataset_to_model_deltas[dataset][model]
+            std_val = deltas["std_unweighted_mean"]
+            rsn_val = deltas["rsn_unweighted_mean"]
+            m_color = model_to_color[model]
+
+            # 1. Connecting Line
+            ax.plot([std_val, rsn_val], [j, j], color="#CCCCCC", linewidth=3.5, zorder=1)
+
+            # 2. Standard Dot (Grey)
+            ax.scatter(std_val, j, color="#A0A0A0", edgecolor="white", linewidth=0.8, s=150, zorder=2)
+
+            # 3. Reasoning Dot (Model Color)
+            ax.scatter(rsn_val, j, color=m_color, edgecolor="black", linewidth=0.8, s=150, zorder=3)
+
+        # Apply y-labels only to the first panel
+        if i == 0:
+            ax.set_yticks(y_positions)
+            ax.set_yticklabels([display_names[m] for m in models], fontweight="bold")
+            # Invert Y-axis so the first model appears at the top
+            ax.invert_yaxis()
+
+    # --- Global X-Axis Label ---
+    # Centered horizontally across the entire figure
+    fig.supxlabel(r"Pure Error-Path Entropy $H(Y|C=0)$", fontsize=12, fontweight="bold")
+
+    # --- Clean Legend ---
+    std_patch = mlines.Line2D([], [], color='white', marker='o', markerfacecolor='#A0A0A0',
+                              markeredgecolor='white', markersize=12, label='Without Reasoning')
+    rsn_patch = mlines.Line2D([], [], color='white', marker='o', markerfacecolor='#4A4A4A',
+                              markeredgecolor='black', markersize=12, label='With Reasoning')
+
+    # Lowered bbox_to_anchor to ensure it sits safely below the supxlabel
+    fig.legend(handles=[std_patch, rsn_patch],
                loc='lower center',
                bbox_to_anchor=(0.5, -0.15),
-               ncol=3, # 3 columns x 2 rows creates a very neat layout
+               ncol=2,
                frameon=False,
                fontsize=12,
-               handlelength=1.5,
-               columnspacing=2.0)
+               handletextpad=0.5,
+               columnspacing=3.0)
 
-    # Leave a bit of space at the bottom for the legend
-    plt.tight_layout(rect=[0, 0.05, 1, 1])
-    plt.savefig("figures/delta_unweighted_entropy.png", bbox_inches="tight")
+    # Expanded bottom rect from 0.05 to 0.12 to give breathing room for both supxlabel and legend
+    plt.tight_layout(rect=[0, 0.12, 1, 1])
+    plt.savefig("figures/delta_unweighted_entropy_dumbbell.png", bbox_inches="tight")
     plt.close()
 
 
@@ -284,7 +289,7 @@ if __name__ == "__main__":
 
     for dataset_name, model_deltas in dataset_to_model_deltas.items():
         for model_key, deltas in model_deltas.items():
-            print(f"{dataset_name} {model_key} | Pure Delta: {deltas['delta_unweighted_mean']:.4f} (over {deltas['valid_pairs_count']} paired error questions)")
+            print(f"{dataset_name} {model_key} | Std: {deltas['std_unweighted_mean']:.4f} -> Rsn: {deltas['rsn_unweighted_mean']:.4f} (over {deltas['valid_pairs_count']} paired error questions)")
 
     models = [
         "Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B",
@@ -293,5 +298,5 @@ if __name__ == "__main__":
 
     model_to_color = prepare_model_to_color()
 
-    plot_unweighted_delta(dataset_to_model_deltas, models, model_to_color)
-    print("Plot successfully saved to figures/delta_unweighted_entropy.png")
+    plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color)
+    print("Plot successfully saved to figures/delta_unweighted_entropy_dumbbell.png")
