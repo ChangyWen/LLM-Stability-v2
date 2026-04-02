@@ -189,32 +189,61 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
     Generates the trajectory plot visualizing the shift in accuracy and entropy
     from Standard (Disable) to Reasoning mode, including 95% Confidence Intervals.
     """
-    sns.set_theme(style="white")
+    # 1. Apply the target style parameters matching previous plots
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 11,
+        "ytick.labelsize": 11,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
+
     datasets = list(dataset_to_model_to_entropy.keys())
 
-    # Map model names to letters A, B, C...
-    model_to_letter = {m: chr(65 + i) for i, m in enumerate(models)}
+    # Set DPI to 1024 and Figure size to match the other plots
+    fig, axes = plt.subplots(1, len(datasets), figsize=(16, 5), sharey=False, sharex=False, dpi=1024)
 
-    fig, axes = plt.subplots(1, len(datasets), figsize=(18, 6), sharey=False, sharex=False)
+    # 2. Define distinct markers (matching the Dumbbell Plot grammar)
+    std_marker = "X" # Cross for Non-Reasoning
+    rsn_marker = "o" # Circle for Reasoning
 
-    # 1. Define distinct markers for Non-Reasoning and Reasoning
-    std_marker = "o" # Circle for Non-Reasoning
-    rsn_marker = "^" # Triangle for Reasoning
+    dataset_name_to_title = {
+        "medmcqa": r"Medicine ($\it{MedMCQA}$)",
+        "mmlu-accounting": r"Finance ($\it{MMLU\!-\!Accounting}$)",
+        "mmlu-law": r"Law ($\it{MMLU\!-\!Law}$)",
+    }
+
+    display_names = {
+        "Qwen3-4B": "Qwen3-4B",
+        "Qwen3-32B": "Qwen3-32B",
+        "Qwen3-30B-A3B": "Qwen3-30B-A3B",
+        "Seed-36B": "Seed-OSS-36B-Instruct",
+        "Nemotron-9B": "NVIDIA-Nemotron-Nano-9B-v2",
+        "Nemotron-12B": "NVIDIA-Nemotron-Nano-12B-v2"
+    }
 
     for i, dataset in enumerate(datasets):
         ax = axes[i]
 
-        ax.grid(True, linestyle='--', alpha=0.6, zorder=0)
+        # Style Title
+        title = dataset_name_to_title.get(dataset, dataset)
+        ax.set_title(title, pad=10, weight="bold")
+
+        # Style Grid and Spines (Remove top and right boundaries)
+        ax.grid(True, linestyle='--', linewidth=0.7, alpha=0.6, zorder=0)
+        ax.set_axisbelow(True)
+        for spine in ["top", "right"]:
+            ax.spines[spine].set_visible(False)
 
         for model in models:
             std_key = f"{model}-Disable"
             rsn_key = model
 
-            # Skip if the model data wasn't successfully extracted for this dataset
             if std_key not in dataset_to_model_to_entropy[dataset] or rsn_key not in dataset_to_model_to_entropy[dataset]:
                 continue
 
-            # Fetch the uniform color for this specific model
             m_color = model_to_color[model]
 
             # Extract means and symmetric errors for Standard Mode
@@ -223,7 +252,6 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
             ent_std = ent_std_data["mean"]
             ent_std_err = ent_std - ent_std_data["ci"][0]
-
             acc_std = acc_std_data["mean"] * 100
             acc_std_err = (acc_std_data["mean"] - acc_std_data["ci"][0]) * 100
 
@@ -233,82 +261,65 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
             ent_rsn = ent_rsn_data["mean"]
             ent_rsn_err = ent_rsn - ent_rsn_data["ci"][0]
-
             acc_rsn = acc_rsn_data["mean"] * 100
             acc_rsn_err = (acc_rsn_data["mean"] - acc_rsn_data["ci"][0]) * 100
 
-            # Plot error bars using the assigned model color (x=acc, y=ent)
+            # Plot error bars (slightly transparent to keep focus on markers)
             error_bars1 = ax.errorbar(acc_std, ent_std, xerr=acc_std_err, yerr=ent_std_err,
-                        fmt='none', ecolor=m_color, alpha=1, capsize=3, zorder=1)
+                        fmt='none', ecolor=m_color, alpha=0.6, capsize=3, zorder=1)
             error_bars2 = ax.errorbar(acc_rsn, ent_rsn, xerr=acc_rsn_err, yerr=ent_rsn_err,
-                        fmt='none', ecolor=m_color, alpha=1, capsize=3, zorder=1)
+                        fmt='none', ecolor=m_color, alpha=0.6, capsize=3, zorder=1)
 
             for bar in error_bars1[2] + error_bars2[2]:
-                bar.set_linestyle(':') # or ':' for dotted, '-.' for dash-dot
+                bar.set_linestyle(':')
 
-            # Draw the vector arrow (kept neutral gray to emphasize the shift)
+            # Draw the vector arrow indicating the shift
             ax.annotate("", xy=(acc_rsn, ent_rsn), xytext=(acc_std, ent_std),
-                        arrowprops=dict(arrowstyle="->", color=m_color, lw=1.5, shrinkA=6, shrinkB=6, mutation_scale=20),
+                        arrowprops=dict(arrowstyle="->", color=m_color, lw=1.5, shrinkA=8, shrinkB=8, mutation_scale=15),
                         zorder=2)
 
-            # 2. Plot Standard point (with specific standard marker)
-            ax.scatter(acc_std, ent_std, color=m_color, marker=std_marker, s=110, zorder=3)
+            # 3. Plot Standard Point (Cross 'X', white border to match dumbbell)
+            ax.scatter(acc_std, ent_std, color=m_color, marker=std_marker, edgecolor="black", linewidth=0.8, s=150, zorder=3)
 
-            # 3. Plot Reasoning point (with specific reasoning marker)
-            ax.scatter(acc_rsn, ent_rsn, color=m_color, marker=rsn_marker, s=130, zorder=3)
-
-            # Label the Reasoning point with the corresponding letter (Swapped x/y coords)
-            # label = model_to_letter[model]
-            # ax.text(acc_rsn, ent_rsn + 0.05, label, fontsize=16, ha='center', va='bottom',
-            #         fontweight='bold', color="#333333", zorder=4)
-
-        # Formatting
-        dataset_name = ""
-        if dataset == "medmcqa":
-            dataset_name = "MedMCQA"
-        elif dataset == "mmlu-accounting":
-            dataset_name = "MMLU-Accounting"
-        elif dataset == "mmlu-law":
-            dataset_name = "MMLU-Law"
-        ax.set_title(dataset_name, fontsize=16, fontweight="bold")
+            # 4. Plot Reasoning Point (Circle 'o', black border to match dumbbell)
+            ax.scatter(acc_rsn, ent_rsn, color=m_color, marker=rsn_marker, edgecolor="black", linewidth=0.8, s=130, zorder=4)
 
         if i == 0:
-            ax.set_ylabel("Entropy (Decision-making Stability)", fontsize=16, fontweight="bold")
+            ax.set_ylabel("Total Entropy (Decision Stability)", fontsize=12, fontweight="bold")
 
-    fig.supxlabel("Accuracy (%)", fontsize=16, fontweight="bold")
+    # --- Global X-Axis Label ---
+    fig.supxlabel("Accuracy (%)", fontsize=12, fontweight="bold", y=0.08)
 
-    # --- Create Leged ---
-    # Legend for Modes (Using neutral gray color to demonstrate just the marker shape)
+    # --- Create Unified Legend ---
+    # Legend for Modes (Using neutral dark grey to show shape represents state)
     mode_handles = [
-        mlines.Line2D([], [], color='gray', marker=std_marker, linestyle='None', markersize=15, label='Without Reasoning'),
-        mlines.Line2D([], [], color='gray', marker=rsn_marker, linestyle='None', markersize=15, label='Reasoning')
+        mlines.Line2D([], [], color='white', marker=std_marker, markerfacecolor='#4A4A4A',
+                      markeredgecolor='black', markersize=12, label='Without Reasoning'),
+        mlines.Line2D([], [], color='white', marker=rsn_marker, markerfacecolor='#4A4A4A',
+                      markeredgecolor='black', markersize=11, label='With Reasoning')
     ]
 
-    # Legend for Models (Using a generic square or circle marker to demonstrate just the color)
-    model_to_name = {
-        "Qwen3-4B": "Qwen3-4B",
-        "Qwen3-32B": "Qwen3-32B",
-        "Qwen3-30B-A3B": "Qwen3-30B-A3B",
-        "Seed-36B": "Seed-OSS-36B-Instruct",
-        "Nemotron-9B": "NVIDIA-Nemotron-Nano-9B-v2",
-        "Nemotron-12B": "NVIDIA-Nemotron-Nano-12B-v2",
-    }
-
+    # Legend for Models (Color patches)
     model_handles = [
-        mlines.Line2D([], [], color=model_to_color[m], marker='s', linestyle='None', markersize=15, label=f"{model_to_name[m]}") for m in models
+        mpatches.Patch(facecolor=model_to_color[m], edgecolor='black', linewidth=0.6,
+                       label=display_names[m]) for m in models
     ]
 
-    # Combine handles and plot below the subplots
+    # Combine handles and plot below subplots in a clean layout (4 items per row)
     all_handles = model_handles + mode_handles
     fig.legend(handles=all_handles,
                loc='lower center',
-               bbox_to_anchor=(0.5, -0.15), # Adjusted slightly lower to accommodate multiple rows
+               bbox_to_anchor=(0.5, -0.08),
                ncol=4,
                frameon=False,
-               fontsize=14)
+               fontsize=11,
+               handletextpad=0.5,
+               columnspacing=2.0)
 
-    plt.tight_layout()
-    plt.savefig("figures/interplay_shift_plot_ci.png", bbox_inches="tight", dpi=150)
+    # Squeeze layout up to make room for supxlabel and legend
+    plt.tight_layout(rect=[0, 0.03, 1, 1])
+    plt.savefig("figures/interplay_shift_plot_ci.png", bbox_inches="tight")
+    plt.close()
 
 
 def prepare_model_to_color():
