@@ -4,9 +4,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import entropy
+from scipy import stats
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 from collections import defaultdict
+import warnings
+
+
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
 
 
 def get_retained_keys(result_files, dataset_name):
@@ -108,7 +126,8 @@ def get_question_components(file_name, retained_ids, correctness_map):
 
 def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
     """
-    Computes both the absolute means and the delta of the pure unweighted error-path entropy.
+    Computes absolute means, delta, and the one-sided Wilcoxon p-value
+    for pure unweighted error-path entropy.
     """
     std_cmap = load_correctness_map(std_file, retained_ids)
     rsn_cmap = load_correctness_map(rsn_file, retained_ids)
@@ -131,11 +150,28 @@ def compute_paired_deltas_per_model(std_file, rsn_file, retained_ids):
 
     delta_unweighted_list = np.array(std_unweighted_list) - np.array(rsn_unweighted_list) if std_unweighted_list else []
 
+    # Calculate One-Sided Paired Wilcoxon Test (H_1: rsn < std)
+    p_value = float('nan')
+    if len(std_unweighted_list) >= 2:
+        x_rsn = np.array(rsn_unweighted_list, dtype=float)
+        x_std = np.array(std_unweighted_list, dtype=float)
+        diff = x_rsn - x_std
+
+        # If all differences are exactly 0, wilcoxon throws an error. Catch it manually.
+        if np.allclose(diff, 0):
+            p_value = 1.0
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                res = stats.wilcoxon(x_rsn, x_std, alternative="less", zero_method="wilcox")
+                p_value = float(res.pvalue)
+
     return {
         "std_unweighted_mean": np.mean(std_unweighted_list) if std_unweighted_list else 0.0,
         "rsn_unweighted_mean": np.mean(rsn_unweighted_list) if rsn_unweighted_list else 0.0,
         "delta_unweighted_mean": np.mean(delta_unweighted_list) if len(delta_unweighted_list) > 0 else 0.0,
-        "valid_pairs_count": len(std_unweighted_list)
+        "valid_pairs_count": len(std_unweighted_list),
+        "p_value": p_value
     }
 
 
@@ -163,8 +199,6 @@ def prepare_model_to_color():
 
 
 def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
-    import matplotlib.lines as mlines
-
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -212,15 +246,24 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
             deltas = dataset_to_model_deltas[dataset][model]
             std_val = deltas["std_unweighted_mean"]
             rsn_val = deltas["rsn_unweighted_mean"]
+            p_val = deltas["p_value"]
             m_color = model_to_color[model]
 
-            # 1. Connecting Line (Colored matching the model, slightly transparent)
+            # 1. Connecting Line
             ax.plot([std_val, rsn_val], [j, j], color=m_color, linewidth=3.5, alpha=0.3, zorder=1)
 
-            # 2. Standard Dot (Model Color, 'X' marker for "Without Reasoning")
+            # 2. Add Significance Stars above the center of the line
+            stars = p_to_stars(p_val)
+            if stars:
+                x_center = (std_val + rsn_val) / 2.0
+                # Because the y-axis is inverted (0 is top), subtracting from j moves the text UP visually.
+                ax.text(x_center, j - 0.01, stars, ha='center', va='bottom',
+                        fontsize=15, fontweight='bold', color=m_color, zorder=4)
+
+            # 3. Standard Dot (Model Color, 'X' marker for "Without Reasoning")
             ax.scatter(std_val, j, color=m_color, marker="X", edgecolor="black", linewidth=0.8, s=150, zorder=2)
 
-            # 3. Reasoning Dot (Model Color, 'o' marker for "With Reasoning")
+            # 4. Reasoning Dot (Model Color, 'o' marker for "With Reasoning")
             ax.scatter(rsn_val, j, color=m_color, marker="o", edgecolor="black", linewidth=0.8, s=150, zorder=3)
 
         # Apply y-labels only to the first panel
@@ -234,7 +277,6 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
     fig.supxlabel(r"Conditional (Error-Path) Entropy $H(Y|C=0)$", fontsize=12, fontweight="bold", y=0.05)
 
     # --- Clean Legend ---
-    # Using a neutral dark grey (#4A4A4A) in the legend to emphasize that SHAPE defines the state.
     std_patch = mlines.Line2D([], [], color='white', marker='X', markerfacecolor='#4A4A4A',
                               markeredgecolor='white', markersize=12, label='Without Reasoning')
     rsn_patch = mlines.Line2D([], [], color='white', marker='o', markerfacecolor='#4A4A4A',
@@ -287,7 +329,7 @@ if __name__ == "__main__":
 
     for dataset_name, model_deltas in dataset_to_model_deltas.items():
         for model_key, deltas in model_deltas.items():
-            print(f"{dataset_name} {model_key} | Std: {deltas['std_unweighted_mean']:.4f} -> Rsn: {deltas['rsn_unweighted_mean']:.4f} (over {deltas['valid_pairs_count']} paired error questions)")
+            print(f"{dataset_name} {model_key} | Std: {deltas['std_unweighted_mean']:.4f} -> Rsn: {deltas['rsn_unweighted_mean']:.4f} (p={deltas['p_value']:.4e})")
 
     models = [
         "Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B",

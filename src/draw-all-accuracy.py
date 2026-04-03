@@ -266,9 +266,9 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
             # Plot error bars (slightly transparent to keep focus on markers)
             error_bars1 = ax.errorbar(acc_std, ent_std, xerr=acc_std_err, yerr=ent_std_err,
-                        fmt='none', ecolor=m_color, alpha=0.6, capsize=3, zorder=1)
+                        fmt='none', ecolor=m_color, alpha=0.8, capsize=3, zorder=1)
             error_bars2 = ax.errorbar(acc_rsn, ent_rsn, xerr=acc_rsn_err, yerr=ent_rsn_err,
-                        fmt='none', ecolor=m_color, alpha=0.6, capsize=3, zorder=1)
+                        fmt='none', ecolor=m_color, alpha=0.8, capsize=3, zorder=1)
 
             for bar in error_bars1[2] + error_bars2[2]:
                 bar.set_linestyle(':')
