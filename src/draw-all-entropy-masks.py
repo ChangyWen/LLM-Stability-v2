@@ -135,7 +135,7 @@ def paired_entropy_test_one_sided(file_to_metrics, key_baseline, key_compare):
 
 
 def plot_combined_statistics(all_results):
-    save_file = "figures/entropy-masks_combined.png"
+    save_file = "figures/entropy-masks_combined.pdf"
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,

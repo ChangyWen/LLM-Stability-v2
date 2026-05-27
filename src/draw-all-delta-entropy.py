@@ -292,7 +292,7 @@ def plot_unweighted_dumbbell(dataset_to_model_deltas, models, model_to_color):
                columnspacing=3.0)
 
     plt.tight_layout(rect=[0, 0.02, 1, 1])
-    plt.savefig("figures/delta_unweighted_entropy_dumbbell.png", bbox_inches="tight")
+    plt.savefig("figures/delta_unweighted_entropy_dumbbell.pdf", bbox_inches="tight")
     plt.close()
 
 

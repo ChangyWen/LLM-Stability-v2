@@ -396,7 +396,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
 
     plt.tight_layout(rect=[0.05, 0.08, 1.0, 0.95])
 
-    save_file = f"{save_dir}/temperature_{dataset_name}_all_models.png"
+    save_file = f"{save_dir}/temperature_{dataset_name}_all_models.pdf"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
     print(f"Saved: {save_file}")

@@ -465,6 +465,6 @@ if __name__ == "__main__":
 
     draw_aggregated_entropy_bars(
         model_to_metrics=model_to_metrics,
-        save_file="figures/entropy-aggregated.png",
+        save_file="figures/entropy-aggregated.pdf",
         title="All Datasets' Results Aggregated"
     )

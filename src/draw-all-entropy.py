@@ -492,4 +492,4 @@ if __name__ == "__main__":
     model_to_color["Nemotron-9B"] = model_to_color["NVIDIA-Nemotron-Nano-9B-v2"]
     model_to_color["Nemotron-12B"] = model_to_color["NVIDIA-Nemotron-Nano-12B-v2"]
 
-    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png", model_to_color=model_to_color)
+    plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.pdf", model_to_color=model_to_color)

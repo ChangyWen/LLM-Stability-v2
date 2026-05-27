@@ -318,7 +318,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
 
     # Squeeze layout up to make room for supxlabel and legend
     plt.tight_layout(rect=[0, 0.03, 1, 1])
-    plt.savefig("figures/interplay_shift_plot_ci.png", bbox_inches="tight")
+    plt.savefig("figures/interplay_shift_plot_ci.pdf", bbox_inches="tight")
     plt.close()
 
 

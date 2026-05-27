@@ -401,6 +401,6 @@ if __name__ == "__main__":
     # 4. Plot
     draw_type_aggregated_entropy_bars(
         category_to_metrics=category_to_metrics,
-        save_file="figures/entropy-type-aggregated.png",
+        save_file="figures/entropy-type-aggregated.pdf",
         title="All Models' Results Aggregated"
     )
