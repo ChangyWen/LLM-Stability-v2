@@ -8,6 +8,37 @@ import numpy as np
 from scipy.stats import entropy
 from scipy import stats
 import seaborn as sns
+from collections import defaultdict
+
+
+# 1. Assign a base sequential palette to each model family.
+# You can change these to "Purples", "Oranges", "mako", "flare", etc.
+model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
+family_palettes = {
+    "Qwen": "Blues",
+    "Seed": "mako",
+    "NVIDIA-Nemotron": "Purples"
+}
+# 2. Group the exact model labels into their respective families
+family_groups = defaultdict(list)
+for model in model_labels:
+    for family in family_palettes.keys():
+        if model.startswith(family):
+            family_groups[family].append(model)
+            break
+# 3. Generate the model_to_color dictionary
+model_to_color = {}
+for family, models in family_groups.items():
+    palette_name = family_palettes[family]
+    # We ask for `len(models) + 1` colors and slice `[1:]` to drop the very
+    # first shade, which is often too light/white to see clearly on a white background.
+    colors = sns.color_palette(palette_name, n_colors=len(models) + 1)[1:]
+    for i, model in enumerate(models):
+        model_to_color[model] = colors[i]
+
+model_to_color["Seed-36B"] = model_to_color["Seed-OSS-36B-Instruct"]
+model_to_color["Nemotron-9B"] = model_to_color["NVIDIA-Nemotron-Nano-9B-v2"]
+model_to_color["Nemotron-12B"] = model_to_color["NVIDIA-Nemotron-Nano-12B-v2"]
 
 
 def get_retained_keys(result_files):
@@ -116,17 +147,15 @@ def plot_combined_statistics(all_results):
     })
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6), dpi=1024, sharey=True)
-    point_color = sns.color_palette("Set2", 1)[0]
+    # point_color = sns.color_palette("Set2", 1)[0]
 
     # --- Pre-calculate Global Y Bounds for consistent bracket scaling ---
     all_upper_bounds = []
     all_lower_bounds = []
     for res, _, _ in all_results:
         for k in res:
-            entropies = list(res[k]["idx_to_entropy"].values())
-            # Ensure bounds account for both the 95% CI and the 75th/25th percentiles
-            all_lower_bounds.append(min(res[k]["ci"][0], np.percentile(entropies, 25)))
-            all_upper_bounds.append(max(res[k]["ci"][1], np.percentile(entropies, 75)))
+            all_lower_bounds.append(res[k]["ci"][0])
+            all_upper_bounds.append(res[k]["ci"][1])
 
     global_min_y = min(all_lower_bounds)
     global_max_y = max(all_upper_bounds)
@@ -149,41 +178,21 @@ def plot_combined_statistics(all_results):
 
         avg = [file_to_metrics[k]["avg"] for k in keys]
         ci = [file_to_metrics[k]["ci"] for k in keys]
-        lower_err = [mean - lower for mean, (lower, upper) in zip(avg, ci)]
-        upper_err = [upper - mean for mean, (lower, upper) in zip(avg, ci)]
-        yerr = [lower_err, upper_err]
+        lower_bound = [lower for lower, upper in ci]
+        upper_bound = [upper for lower, upper in ci]
         x = np.arange(len(keys))
 
-        # ---- Calculate Percentiles (25th, 50th, 75th) ----
-        p25 = [np.percentile(list(file_to_metrics[k]["idx_to_entropy"].values()), 25) for k in keys]
-        p50 = [np.percentile(list(file_to_metrics[k]["idx_to_entropy"].values()), 50) for k in keys]
-        p75 = [np.percentile(list(file_to_metrics[k]["idx_to_entropy"].values()), 75) for k in keys]
+        point_color = model_to_color[model]
 
         # ---- 1. Line connecting means (subtle) ----
-        ax.plot(x, avg, linestyle="--", linewidth=2.2, color=point_color, alpha=0.85, zorder=1)
+        ax.plot(x, avg, linestyle="-", linewidth=2.2, color=point_color, alpha=0.85, zorder=1)
 
-        # ---- 2. IQR Thick Bar (25th to 75th percentile) ----
-        ax.vlines(x, p25, p75, color=point_color, linewidth=12, alpha=0.3, zorder=2)
+        # ---- 2. 95% CI Shaded Area ----
+        ax.fill_between(x, lower_bound, upper_bound, color=point_color, alpha=0.2, zorder=0, linewidth=0)
 
-        # ---- 3. Median Marker (50th percentile tick) ----
-        # Using a distinct black horizontal tick for the median
-        ax.scatter(x, p50, marker='_', color='black', s=200, linewidth=2.5, zorder=3)
-
-        # ---- 4. Mean and 95% CI Errorbar (on top) ----
-        eb = ax.errorbar(x, avg, yerr=yerr, fmt="o", markersize=10, capsize=6, elinewidth=2.2,
-                         color=point_color, markerfacecolor=point_color, markeredgecolor="black",
-                         markeredgewidth=1.5, alpha=1.0, zorder=4)
-
-        # ---- CI numeric labels ----
-        for i, (mean, (lower, upper), p_75, p_25) in enumerate(zip(avg, ci, p75, p25)):
-            # Place labels dynamically so they don't overlap the IQR bar if it's taller than the CI
-            label_top = max(upper, p_75)
-            label_bottom = min(lower, p_25)
-
-            ax.text(x[i], label_top + (y_range * 0.02), f"{upper:.3f}",
-                    ha="center", va="bottom", fontsize=8, fontweight="bold")
-            ax.text(x[i], label_bottom - (y_range * 0.02), f"{lower:.3f}",
-                    ha="center", va="top", fontsize=8, fontweight="bold")
+        # ---- 3. Mean Markers (on top) ----
+        ax.plot(x, avg, marker="o", markersize=10, color=point_color, markeredgecolor=point_color,
+                markeredgewidth=1.5, linestyle="None", alpha=1.0, zorder=4)
 
         # ---- Significance Brackets ----
         margin = 0.06
@@ -222,19 +231,20 @@ def plot_combined_statistics(all_results):
         ax.set_ylim(global_min_y - (y_range * 0.1), max_bracket_height)
 
     # ---- Sup Labels and Legend ----
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=13, fontweight="bold", x=0.02)
+    fig.supylabel("Entropy (Instability)", fontsize=13, fontweight="bold", x=0.02)
     fig.supxlabel("Reasoning Step(s)", fontsize=13, fontweight="bold", y=0.08)
 
-    # Custom Legend to explain the new visual elements
-    mean_ci_line = mlines.Line2D([], [], color=point_color, marker='o', linestyle='--',
-                                 markersize=9, markeredgecolor='black', label='Mean & 95% CI')
+    # Custom Legend to explain the visual elements
+    mean_line = mlines.Line2D([], [], color=point_color, marker='o', linestyle='--',
+                              markersize=9, markeredgecolor='black', label='Mean')
+    ci_patch = mpatches.Patch(color=point_color, alpha=0.2, label='95% CI (Shaded)')
     iqr_patch = mpatches.Patch(color=point_color, alpha=0.3, label='IQR (25th - 75th)')
     median_marker = mlines.Line2D([], [], color='black', marker='_', linestyle='None',
                                   markersize=12, markeredgewidth=2.5, label='Median')
 
-    fig.legend(handles=[mean_ci_line, iqr_patch, median_marker],
-               loc="lower center", ncol=3, bbox_to_anchor=(0.53, -0.02),
-               frameon=False, fontsize=11, columnspacing=1.5)
+    # fig.legend(handles=[mean_line, ci_patch, iqr_patch, median_marker],
+    #            loc="lower center", ncol=4, bbox_to_anchor=(0.53, -0.02),
+    #            frameon=False, fontsize=11, columnspacing=1.5)
 
     # Adjust layout to make room for the legend at the bottom
     plt.tight_layout(rect=[0, 0.1, 1, 1])

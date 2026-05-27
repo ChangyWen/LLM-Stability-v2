@@ -256,7 +256,7 @@ def draw_type_aggregated_entropy_bars(
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.04)
+    fig.supylabel("Entropy (Instability)", fontsize=12, fontweight="bold", x=0.04)
 
     # --- Legend ---
     style_handles = [

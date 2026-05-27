@@ -353,7 +353,7 @@ def plot_dataset_temperature_all_models(dataset_name, model_names, temperatures,
         delta_handle = h
 
     fig.supxlabel("Temperature", fontsize=12, fontweight="bold", y=0.1)
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Entropy (Instability)", fontsize=12, fontweight="bold", x=0.06)
 
     fig.text(
         1.01, 0.5,

@@ -285,7 +285,7 @@ def plot_interplay_shift(dataset_to_model_to_entropy, dataset_to_model_to_accura
             ax.scatter(acc_rsn, ent_rsn, color=m_color, marker=rsn_marker, edgecolor="black", linewidth=0.8, s=130, zorder=4)
 
         if i == 0:
-            ax.set_ylabel("Total Entropy (Decision Stability)", fontsize=12, fontweight="bold")
+            ax.set_ylabel("Total Entropy (Instability)", fontsize=12, fontweight="bold")
 
     # --- Global X-Axis Label ---
     fig.supxlabel("Accuracy (%)", fontsize=12, fontweight="bold", y=0.08)

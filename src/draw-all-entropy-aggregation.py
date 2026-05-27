@@ -335,7 +335,7 @@ def draw_aggregated_entropy_bars(
         ax.spines[spine].set_visible(False)
 
     # --- shared ylabel (same text) ---
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Entropy (Instability)", fontsize=12, fontweight="bold", x=0.06)
 
     # --- same legend structure ---
     legend_model_labels = [

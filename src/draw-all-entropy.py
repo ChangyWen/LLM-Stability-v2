@@ -244,7 +244,7 @@ def plot_all_datasets(metrics_by_dataset, save_file="figures/entropy-all.png", m
 
     # --- Shared labels (tight spacing) ---
     # fig.supxlabel("Model", fontsize=12, fontweight="bold", y=0.02)
-    fig.supylabel("Entropy (Decision-making Stability)", fontsize=12, fontweight="bold", x=0.06)
+    fig.supylabel("Entropy (Instability)", fontsize=12, fontweight="bold", x=0.06)
 
     # --- Legend: 6 model colors + 2 style boxes (empty vs hatched) ---
     model_labels = ["Qwen3-4B", "Qwen3-32B", "Qwen3-30B-A3B", "Seed-OSS-36B-Instruct", "NVIDIA-Nemotron-Nano-9B-v2", "NVIDIA-Nemotron-Nano-12B-v2"]
